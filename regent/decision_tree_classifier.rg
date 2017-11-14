@@ -7,13 +7,25 @@ local c = regentlib.c
 local sqrt  = regentlib.sqrt(double)
 local cmath = terralib.includec("math.h")
 
-local num_attr = 4
+local num_feature = 4
 
 struct Row
 {
     label : uint32,
-    attr : double[num_attr];
+    features : double[num_feature];
 }
+
+
+-- Decision Tree
+------------------------------------
+struct Tree
+{
+    feature_ind : uint32, -- index of splitting feature 
+    feature_val : double; -- value of splitting feature
+    left        : Tree;   -- left subtree 
+    rigth       : Tree;   -- right subtree 
+}
+
 
 -- Field Space for each cell
 ------------------------------------
@@ -23,14 +35,14 @@ fspace Cell {
   val: double;
 }
 
+
 -- Field Space for each data point 
 ------------------------------------
 fspace DataPoint {
   row        : uint64; -- row number, i.e. ID of this data point 
   label      : uint32;  -- classification label 
-  attributes : Cell[num_attr]         -- an array of cells 
+  features : Cell[num_feature]         -- an array of cells 
 }
-
 
 
 -- skip header in file 
@@ -39,6 +51,7 @@ terra skip_header(f : &c.FILE)
   var x : uint64, y : uint64
   c.fscanf(f, "%llu\n%llu\n", &x, &y)
 end
+
 
 
 
@@ -57,8 +70,8 @@ end
 
 -- Read Row from File 
 --------------------------------------------------------------------
-terra read_row(f : &c.FILE, label : &uint32, attr : &double)
-      return c.fscanf(f, "%d %lf %lf %lf %lf", &label[0], &attr[0], &attr[1], &attr[2], &attr[3]) == num_attr + 1
+terra read_row(f : &c.FILE, label : &uint32, feature : &double)
+      return c.fscanf(f, "%d %lf %lf %lf %lf", &label[0], &feature[0], &feature[1], &feature[2], &feature[3]) == num_feature + 1
 end
 
 
@@ -70,8 +83,8 @@ where
     reads(r_data_points)
 do
     for data in r_data_points do
-        var attr = data.attributes  
-        c.printf("%3d -> %lf %lf %lf %lf\n", data.label, attr[0].val, attr[1].val, attr[2].val, attr[3].val)
+        var feature = data.features  
+        c.printf("%3d -> %lf %lf %lf %lf\n", data.label, feature[0].val, feature[1].val, feature[2].val, feature[3].val)
     end
 end
 
@@ -88,19 +101,43 @@ do
   var f = c.fopen(filename, "rb")
   skip_header(f)
   var label : uint32[1] 
-  var attr : double[num_attr]
+  var feature : double[num_feature]
   for row = 0, num_rows do
-    regentlib.assert(read_row(f, label, attr), "Less data that it should be")
+    regentlib.assert(read_row(f, label, feature), "Less data that it should be")
     r_data_points[row].row = row
     r_data_points[row].label = label[0]
-    for col = 1, num_attr + 1 do
-        r_data_points[row].attributes[col-1].row = row
-        r_data_points[row].attributes[col-1].col = col
-        r_data_points[row].attributes[col-1].val = attr[col-1]
+    for col = 1, num_feature + 1 do
+        r_data_points[row].features[col-1].row = row
+        r_data_points[row].features[col-1].col = col
+        r_data_points[row].features[col-1].val = feature[col-1]
     end 
   end 
   -- c.printf("--------- Read Data Done -------------\n")
 end
+
+
+-- split the tree on a certain feature 
+--------------------------------------------------------------------
+-- feature:  index of feature in feature list to be splited 
+-- return:   gini index value
+task split_by_feature(r_data_points : region(DataPoint),
+                      feature : uint8)
+end 
+
+
+-- Find Best Split 
+--------------------------------------------------------------------
+-- first sort the feature
+-- return: (feature_index, feature_val)
+task best_split(r_data_points : region(DataPoint))
+end 
+
+-- Decision Tree Algorithm 
+--------------------------------------------------------------------
+task build_tree(r_data_points : region(DataPoint),
+                depth: uint8)
+end 
+
 
 -- Main Task 
 --------------------------------------------------------------------
