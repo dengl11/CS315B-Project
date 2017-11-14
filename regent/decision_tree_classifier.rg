@@ -9,6 +9,12 @@ local cmath = terralib.includec("math.h")
 
 local num_attr = 4
 
+struct Row
+{
+    label : uint32,
+    attr : double[num_attr];
+}
+
 -- Field Space for each cell
 ------------------------------------
 fspace Cell {
@@ -21,7 +27,7 @@ fspace Cell {
 ------------------------------------
 fspace DataPoint {
   row        : uint64; -- row number, i.e. ID of this data point 
-  label      : uint8;  -- classification label 
+  label      : uint32;  -- classification label 
   attributes : Cell[num_attr]         -- an array of cells 
 }
 
@@ -38,11 +44,11 @@ end
 
 -- init configuration 
 --------------------------------------------------------------------
-terra init_config(config : DecisionTreeConfig)
-  config:initialize_from_command()
+terra show_config(config : DecisionTreeConfig)
   c.printf("**********************************\n")
   c.printf("* Decision Tree Classifier       *\n")
   c.printf("*                                *\n")
+  c.printf("* Input:  %s\n",  config.input)
   c.printf("* Number of Rows  :  %11lu *\n",  config.num_row)
   c.printf("* Number of Cols  :  %11lu *\n",  config.num_col)
   c.printf("**********************************\n") 
@@ -51,9 +57,24 @@ end
 
 -- Read Row from File 
 --------------------------------------------------------------------
-terra read_row(f : &c.FILE, attr : &double)
-      return (c.fscanf(f, "%lf %lf %lf %lf %lf\n", &attr[0], &attr[1], &attr[2], &attr[3], &attr[4])) == num_attr + 1
+terra read_row(f : &c.FILE, label : &uint32, attr : &double)
+      return c.fscanf(f, "%d %lf %lf %lf %lf", &label[0], &attr[0], &attr[1], &attr[2], &attr[3]) == num_attr + 1
 end
+
+
+-- utility function: Peeak Head 
+--------------------------------------------------------------------
+task peek(r_data_points : region(DataPoint),
+           k : uint8)
+where
+    reads(r_data_points)
+do
+    for data in r_data_points do
+        var attr = data.attributes  
+        c.printf("%3d -> %lf %lf %lf %lf\n", data.label, attr[0].val, attr[1].val, attr[2].val, attr[3].val)
+    end
+end
+
 
 
 -- Read Data from File 
@@ -66,28 +87,31 @@ where
 do
   var f = c.fopen(filename, "rb")
   skip_header(f)
-  var attr : double[num_attr + 1]
-  var row = 1
-  for data in r_data_points do
-    regentlib.assert(read_row(f, attr), "Less data that it should be")
-    data.row = row
-    data.label = attr[0]
-    for i = 1, num_attr + 1 do
-        var cell = 
-        data.attributes[i-1] = attr[i]
-    row += 1
+  var label : uint32[1] 
+  var attr : double[num_attr]
+  for row = 0, num_rows do
+    regentlib.assert(read_row(f, label, attr), "Less data that it should be")
+    r_data_points[row].row = row
+    r_data_points[row].label = label[0]
+    for col = 1, num_attr + 1 do
+        r_data_points[row].attributes[col-1].row = row
+        r_data_points[row].attributes[col-1].col = col
+        r_data_points[row].attributes[col-1].val = attr[col-1]
+    end 
   end 
-  end 
-  
+  -- c.printf("--------- Read Data Done -------------\n")
 end
 
 -- Main Task 
 --------------------------------------------------------------------
 task main()
   var config : DecisionTreeConfig
-  init_config(config)
+  config:initialize_from_command()
+  show_config(config)
   -- create a region of data points
   var r_data_points = region(ispace(ptr, config.num_row), DataPoint)
+  read_data(r_data_points, config.num_row, config.input)
+  peek(r_data_points, 5)
 end
 
 regentlib.start(main)
