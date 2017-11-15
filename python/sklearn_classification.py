@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.tree import DecisionTreeClassifier
 
 # param
-max_depth = 3
+max_depth = 6
 
 # load data 
 
