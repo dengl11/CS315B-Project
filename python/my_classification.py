@@ -1,29 +1,35 @@
 ############################################################
-# My Decision Tree Classification on Iris 
+# My Decision Tree Classification 
 ############################################################
 
 import numpy as np
 
 from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_iris
+from sklearn.datasets import *
 from sklearn.metrics import accuracy_score
 from my_decision_tree import *
 
 # param
 max_depth = 3
 
-# load data 
-iris = load_iris()
-X = iris.data
-y = iris.target
+######## Iris: 3 classes ######
+# dataset = load_iris()
 
-selected = (y >= 1)
-X = X[selected, :]
-y = y[selected]
-miny = min(y)
-maxy = max(y)
-y[y == miny] = 0
-y[y == maxy] = 1
+######## Cancer: 2 classes ######
+dataset = load_breast_cancer()
+
+X = dataset.data
+y = dataset.target
+
+###### filter for iris: only keep 2 classes ######
+# selected = (y >= 1)
+# X = X[selected, :]
+# y = y[selected]
+# miny = min(y)
+# maxy = max(y)
+# y[y == miny] = 0
+# y[y == maxy] = 1
+##################################################
 
 # split train-test
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)

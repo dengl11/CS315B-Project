@@ -1,11 +1,11 @@
 ############################################################
-# Sklearn Decision Tree Classification on Iris 
+# Sklearn Decision Tree Classification 
 ############################################################
 
 import numpy as np
 
 from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_iris
+from sklearn.datasets import *
 from sklearn.metrics import accuracy_score
 from sklearn.tree import DecisionTreeClassifier
 
@@ -13,13 +13,19 @@ from sklearn.tree import DecisionTreeClassifier
 max_depth = 3
 
 # load data 
-iris = load_iris()
-X = iris.data
-y = iris.target
 
-selected = (y >= 1)
-X = X[selected, :]
-y = y[selected]
+######## Iris: 3 classes ######
+# dataset = load_iris()
+
+######## Cancer: 2 classes ######
+dataset = load_breast_cancer()
+
+X = dataset.data
+y = dataset.target
+
+# selected = (y >= 1)
+# X = X[selected, :]
+# y = y[selected]
 
 
 # split train-test
