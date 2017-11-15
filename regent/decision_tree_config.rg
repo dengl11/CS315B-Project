@@ -9,6 +9,7 @@ struct DecisionTreeConfig
   input  : int8[512],
   num_row: uint64;
   num_col: uint64;
+  max_depth: uint64; 
 }
 
 local cstring = terralib.includec("string.h")
@@ -38,6 +39,7 @@ end
 --------------------------------------------------------------------
 terra DecisionTreeConfig:initialize_from_command()
   var input_given = false
+  self.max_depth = 3
 
   var args = c.legion_runtime_get_input_args()
   var i = 1
