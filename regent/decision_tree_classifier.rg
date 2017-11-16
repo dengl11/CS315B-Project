@@ -5,7 +5,7 @@ local DecisionTreeConfig = require("decision_tree_config")
 local Tree = require("decision_tree_lib")
 
 local c = regentlib.c
-local sqrt  = regentlib.sqrt(double)
+local sqrt  = regentlib.sqrt(float)
 local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 
@@ -14,10 +14,17 @@ local num_feature = 4
 struct Row
 {
     label : uint32,
-    features : double[num_feature];
+    features : float[num_feature];
 }
 
 
+terra square(x : float)
+    return cmath.pow(x, 2)
+end 
+
+terra compute_gini(pos_ratio : float)
+    return 1 - square(pos_ratio) - square(1-pos_ratio) 
+end 
 
 -- skip header in file 
 --------------------------------------------------------------------
@@ -43,8 +50,8 @@ end
 
 -- Read Row from File 
 --------------------------------------------------------------------
-terra read_row(f : &c.FILE, label : &uint32, feature : &double)
-      return c.fscanf(f, "%d %lf %lf %lf %lf", &label[0], &feature[0], &feature[1], &feature[2], &feature[3]) == num_feature + 1
+terra read_row(f : &c.FILE, label : &uint32, feature : &float)
+      return c.fscanf(f, "%d %f %f %f %f", &label[0], &feature[0], &feature[1], &feature[2], &feature[3]) == num_feature + 1
 end
 
 
@@ -76,7 +83,7 @@ do
   var f = c.fopen(filename, "rb")
   skip_header(f)
   var label : uint32[1] 
-  var feature : double[num_feature]
+  var feature : float[num_feature]
   for row = 0, num_rows do
     regentlib.assert(read_row(f, label, feature), "Less data that it should be")
     r_data_points[row].row = row
@@ -90,14 +97,6 @@ do
   -- c.printf("--------- Read Data Done -------------\n")
 end
 
-
--- split the tree on a certain feature 
---------------------------------------------------------------------
--- feature:  index of feature in feature list to be splited 
--- return:   gini index value
-task split_by_feature(r_data_points : region(DataPoint),
-                      feature : uint8)
-end 
 
 
 -- Find Best Split 
@@ -124,14 +123,62 @@ task construct_tree(r_data_points : region(DataPoint),
                 max_depth: uint32)
     var tree : Tree 
     var n:uint64 = 0
+    -- var data = ispace(int1d, 1000)
     var data : uint64[1000]
     for row in r_data_points do 
         n += 1
+        data[n] = n
     end 
     tree:init(n, max_depth, data) 
     return tree 
 end
 
+-- split by feature 
+--------------------------------------------------------------------
+-- feature:  index of feature in feature list to be splited 
+-- return {gini_index, split_val}
+task split_by_feature(r_data_points : region(DataPoint), 
+                      node: DTNode, feature : uint32)
+where
+  reads (r_data_points)
+do
+    var best_gini = node.gini 
+    for i in r_data_points do
+        -- c.printf("%f\t", r_data_points[i].features[feature].val)
+    end 
+end 
+
+
+
+
+-- split a node into two 
+--------------------------------------------------------------------
+task split_node(r_data_points : region(DataPoint), node : DTNode)
+where
+  reads (r_data_points)
+do
+    var nPos : float = 0
+    for i = 0,  node.n + 1 do
+        nPos += r_data_points[node.data[i]].label 
+    end 
+    var pos_ratio : float = nPos/node.n 
+    node:set_gini(compute_gini(pos_ratio))
+    c.printf("local gini = %f\n", node.gini)
+    for feature = 0, num_feature do
+        split_by_feature(r_data_points, node, feature)
+    end 
+end 
+
+
+-- train a tree on data points 
+--------------------------------------------------------------------
+task train(r_data_points : region(DataPoint),
+           tree : Tree)
+where
+  reads (r_data_points)
+do
+    split_node(r_data_points, tree.root) 
+end 
 
 -- sort data points by a certain feature
 --------------------------------------------------------------------
@@ -166,38 +213,35 @@ end
 
 -- Main Task 
 --------------------------------------------------------------------
--- task main()
---   var config : DecisionTreeConfig
---   config:initialize_from_command()
---   show_config(config)
---   -- create a region of data points
---   var r_data_points = region(ispace(ptr, config.num_row), DataPoint)
---   read_data(r_data_points, config.num_row, config.input)
---   sort_data(r_data_points)
---   -- sort_by_feature(r_data_points, 1)
--- 
---   peek(r_data_points, 5)
---   var tree : Tree = construct_tree(r_data_points, config.max_depth)
--- end
-
-terra cmp(a : int, b : int)
-    return a - b
-end 
-
-
-terra sort()
- -- Sort the info by sample count
-    var counts = {1, 3, 2}
-    var sortedcounts = {}
-    for k,v in pairs(counts) do
-        table.insert(sortedcounts, {key = k, count = v})
-    end
-    table.sort(sortedcounts, function(a, b) return a.count > b.count end)
-end 
-
 task main()
-    sort()
+  var config : DecisionTreeConfig
+  config:initialize_from_command()
+  show_config(config)
+  -- create a region of data points
+  var r_data_points = region(ispace(ptr, config.num_row), DataPoint)
+  read_data(r_data_points, config.num_row, config.input)
+  -- sort_data(r_data_points)
+  -- sort_by_feature(r_data_points, 1)
+
+  peek(r_data_points, 5)
+  var tree : Tree = construct_tree(r_data_points, config.max_depth)
+  train(r_data_points, tree)
+  tree:show()
+end
+
+terra cmp(a : ptr, b : ptr)
+    return 1
 end 
+
+
+-- terra sort()
+--     var counts = {1, 3, 2}
+--     std.qsort(&counts, 3, 4, cmp)
+-- end 
+
+-- task main()
+--     sort()
+-- end 
 
 -- regentlib.start(sort)
 regentlib.start(main)
