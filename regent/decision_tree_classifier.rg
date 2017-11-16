@@ -124,10 +124,11 @@ task construct_tree(r_data_points : region(DataPoint),
                 max_depth: uint32)
     var tree : Tree 
     var n:uint64 = 0
+    var data : uint64[1000]
     for row in r_data_points do 
         n += 1
     end 
-    tree:init(n, max_depth) 
+    tree:init(n, max_depth, data) 
     return tree 
 end
 
@@ -139,19 +140,64 @@ end
 --     std.qsort(r_data_points, n_data_points, c.sizeof(DataPoint), comp_fn)
 -- end 
 
+task sort_on_feature(r_data_points : region(DataPoint),
+                     feature       : uint32)
+where
+  reads (r_data_points.features),
+  writes (r_data_points.ranks)
+do
+    for i in r_data_points do
+        c.printf("%f\t", r_data_points[i].features[feature].val)
+    end 
+end 
+
+
+-- sort data points 
+--------------------------------------------------------------------
+task sort_data(r_data_points : region(DataPoint))
+where
+  reads (r_data_points.features),
+  writes (r_data_points.ranks)
+do
+    for i = 0, num_feature do
+        sort_on_feature(r_data_points, i)
+    end 
+end 
+
 -- Main Task 
 --------------------------------------------------------------------
+-- task main()
+--   var config : DecisionTreeConfig
+--   config:initialize_from_command()
+--   show_config(config)
+--   -- create a region of data points
+--   var r_data_points = region(ispace(ptr, config.num_row), DataPoint)
+--   read_data(r_data_points, config.num_row, config.input)
+--   sort_data(r_data_points)
+--   -- sort_by_feature(r_data_points, 1)
+-- 
+--   peek(r_data_points, 5)
+--   var tree : Tree = construct_tree(r_data_points, config.max_depth)
+-- end
+
+terra cmp(a : int, b : int)
+    return a - b
+end 
+
+
+terra sort()
+ -- Sort the info by sample count
+    var counts = {1, 3, 2}
+    var sortedcounts = {}
+    for k,v in pairs(counts) do
+        table.insert(sortedcounts, {key = k, count = v})
+    end
+    table.sort(sortedcounts, function(a, b) return a.count > b.count end)
+end 
+
 task main()
-  var config : DecisionTreeConfig
-  config:initialize_from_command()
-  show_config(config)
-  -- create a region of data points
-  var r_data_points = region(ispace(ptr, config.num_row), DataPoint)
-  read_data(r_data_points, config.num_row, config.input)
-  -- sort_by_feature(r_data_points, 1)
+    sort()
+end 
 
-  peek(r_data_points, 5)
-  var tree : Tree = construct_tree(r_data_points, config.max_depth)
-end
-
+-- regentlib.start(sort)
 regentlib.start(main)

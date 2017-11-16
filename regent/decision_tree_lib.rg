@@ -27,6 +27,11 @@ struct DTNode
     data          : uint64[MAX_ROW];
 }
 
+terra DTNode : init(n : uint64, data : uint64[1000])
+    self.n = n
+    self.data = data 
+end 
+
 
 -- Decision Tree
 ------------------------------------
@@ -36,9 +41,13 @@ struct Tree
     max_depth: uint32;
 }
 
-terra Tree : init(n : uint64, max_depth : uint32)
+terra Tree : init(n : uint64, max_depth : uint32, data : uint64[1000])
+    var root : DTNode 
+    root:init(n, data)
     self.max_depth = max_depth 
+    self.root = root
 end 
+
 
 -- Split by Feature 
 ------------------------------------

@@ -18,7 +18,9 @@ fspace DataPoint {
   -- classification label 
   label      : uint32;  
   -- features: an array of cells 
-  features   : Cell[num_feature]         
+  features   : Cell[num_feature];         
+  -- rank for each feature 
+  ranks      : uint64[num_feature];
 }
 
 return DataPoint 
