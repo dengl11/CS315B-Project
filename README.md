@@ -36,7 +36,7 @@
 ------
 <div style="margin-top:4em"></div>
 
-<img src="doc/alg.png" width="1000px">
+<img src="doc/alg.png" width="1200px">
 </div>
 
 
