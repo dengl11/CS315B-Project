@@ -7,7 +7,7 @@
 
 ### Target
 
-> Implement a parallel computation of Binary Decision Tree in [`regent`](http://regent-lang.org/) based on CART(Classification and Regreee Tree) algorithm
+> Implement a parallel computation of Binary Decision Tree in [`Regent`](http://regent-lang.org/) based on CART(Classification and Regreee Tree) algorithm
 
 
 ### Scope
