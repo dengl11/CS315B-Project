@@ -28,9 +28,15 @@
 <img src="doc/dt.png" width="400px"/>
 <p>Source:  http://homes.cs.washington.edu/~tqchen/pdf/BoostedTree.pdf</p>
 
+<div style="margin-top:4em"></div>
+
 <img src="http://zhanpengfang.github.io/fig_418/sequential_alg.jpg" width="600px">
 <p>Source:  http://zhanpengfang.github.io/fig_418</p>
 
+------
+<div style="margin-top:4em"></div>
+
+<img src="doc/alg.png" width="800px">
 </div>
 
 
