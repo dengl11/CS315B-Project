@@ -15,7 +15,7 @@
 - Binary Class labels (0 or 1)
 - Fixed Number of Features
 - Numeric Features
-- No regression 
+- No Regularization 
 - Classification Metric: `Gini` index 
 
 <div style="text-align: center">
