@@ -1,4 +1,5 @@
-# CS315B-Project: Parallel Binary Decision Tree Construction
+### Stanford CS315B-Project
+# Parallel Binary Decision Tree Construction
 
 > Course Project for CS315B - 2017 Autumn - Stanford
 > Student: Li Deng 
