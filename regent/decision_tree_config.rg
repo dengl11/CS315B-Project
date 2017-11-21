@@ -1,18 +1,34 @@
-import "regent"
+-------------------------------------------------------------
+-- Configuration of Classifier 
+-------------------------------------------------------------
+num_feature = 4
 
 local c = regentlib.c
-
-local util = {}
+local cstring = terralib.includec("string.h")
 
 struct DecisionTreeConfig
 {
-  input  : int8[512],
+  input_train  : int8[512],
+  input_test  : int8[512],
   num_row: uint64;
   num_col: uint64;
   max_depth: uint64; 
 }
 
-local cstring = terralib.includec("string.h")
+
+-- init configuration 
+--------------------------------------------------------------------
+terra show_config(config : DecisionTreeConfig)
+  c.printf("****************************************\n")
+  c.printf("* Decision Tree Classifier             *\n")
+  c.printf("*                                      *\n")
+  c.printf("* Train Input: %s\n",  config.input_train)
+  c.printf("* Test  Input: %s\n",  config.input_test)
+  c.printf("* Number of Rows  :  %11lu       *\n",  config.num_row)
+  c.printf("* Number of Cols  :  %11lu       *\n",  config.num_col)
+  c.printf("****************************************\n") 
+end
+
 
 -- show program usage 
 --------------------------------------------------------------------
@@ -46,7 +62,7 @@ terra DecisionTreeConfig:initialize_from_command()
   while i < args.argc do
     if cstring.strcmp(args.argv[i], "-h") == 0 then
       print_usage_and_abort()
-    elseif cstring.strcmp(args.argv[i], "-i") == 0 then
+    elseif cstring.strcmp(args.argv[i], "-train") == 0 then
       i = i + 1
 
       var file = c.fopen(args.argv[i], "rb")
@@ -54,12 +70,15 @@ terra DecisionTreeConfig:initialize_from_command()
         c.printf("File '%s' doesn't exist!\n", args.argv[i])
         c.abort()
       end
-      cstring.strcpy(self.input, args.argv[i])
+      cstring.strcpy(self.input_train, args.argv[i])
       c.fscanf(file, "%llu\n%llu\n", &self.num_row, &self.num_col)
       input_given = true
       c.fclose(file)
-    i = i + 1
-  end
+    elseif cstring.strcmp(args.argv[i], "-test") == 0 then
+        i = i + 1
+        cstring.strcpy(self.input_test, args.argv[i])
+    end
+        i = i + 1
   end
   if not input_given then
     c.printf("Input file must be given!\n\n")

@@ -1,3 +1,7 @@
+-------------------------------------------------------------
+-- Library of My Decision Tree 
+-------------------------------------------------------------
+
 import "regent"
 
 local DataPoint = require("field_space_lib")
@@ -39,12 +43,16 @@ terra DTNode : set_gini(gini: float)
     self.gini = gini
 end 
 
+-- Display a Node 
+------------------------------------
 terra DTNode : show()
-    for i = 0, self.depth + 1 do  
+    -- indent for depth 
+    for i = 0, self.depth do  
         c.printf("\t")
     end 
-    c.printf("n = %d, gini = %f\n", self.n, self.gini)
+    c.printf("depth = %d, n = %d, gini = %f\n", self.depth, self.n, self.gini)
 end 
+
 
 -- Decision Tree
 ------------------------------------
@@ -63,7 +71,7 @@ end
 
 
 terra Tree:show()
-    c.printf("-------- Tree - max_depth = %d ---------\n", self.max_depth)
+    c.printf("\n-------- Tree - max_depth = %d ---------\n", self.max_depth)
     self.root:show() 
     c.printf("---------------------------------------\n")
 end 
