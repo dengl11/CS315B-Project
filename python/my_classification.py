@@ -13,22 +13,22 @@ from my_decision_tree import *
 max_depth = 3
 
 ######## Iris: 3 classes ######
-# dataset = load_iris()
+dataset = load_iris()
 
 ######## Cancer: 2 classes ######
-dataset = load_breast_cancer()
+# dataset = load_breast_cancer()
 
 X = dataset.data
 y = dataset.target
 
 ###### filter for iris: only keep 2 classes ######
-# selected = (y >= 1)
-# X = X[selected, :]
-# y = y[selected]
-# miny = min(y)
-# maxy = max(y)
-# y[y == miny] = 0
-# y[y == maxy] = 1
+selected = (y >= 1)
+X = X[selected, :]
+y = y[selected]
+miny = min(y)
+maxy = max(y)
+y[y == miny] = 0
+y[y == maxy] = 1
 ##################################################
 
 # split train-test

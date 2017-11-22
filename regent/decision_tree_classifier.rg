@@ -124,7 +124,7 @@ do
         for i = 1, t.depth do
             c.printf("\t")
         end 
-        c.printf("ID=%d\tDepth=%d\tLeft=%d\tRight=%d\tn=%d\n", t, t.depth, t.left, t.right, t.n)
+        c.printf("[%d]\tL=%d\tR=%d\tn=%d\tG=%f\tSF=%d\tSV=%f \n", t, t.left, t.right, t.n, t.gini, t.split_feature, t.split_val)
     end 
     c.printf("----------------------------------------\n")
 end 
@@ -178,17 +178,18 @@ do
     var best_gini = node.gini 
     var split_val : float 
     for i = 0, node.n do
-        var curr_val = r_data_points[i].features[feature]
+        var curr_val = r_data_points[node.data[i]].features[feature]
         var num_pos_left : float = 0
         var num_left : float = 0
         var num_pos_right : float = 0
         var num_right : float = 0
-        for j in r_data_points do
-            if r_data_points[j].features[feature] <= curr_val then
-                num_pos_left += r_data_points[i].label 
+        for j = 0, node.n do
+            var point = r_data_points[node.data[j]]
+            if point.features[feature] <= curr_val then
+                num_pos_left += point.label 
                 num_left += 1
             else
-                num_pos_right += r_data_points[i].label 
+                num_pos_right += point.label 
                 num_right += 1
             end 
         end 
@@ -202,8 +203,6 @@ do
             split_val = curr_val 
         end 
     end 
-    c.printf("return best_gini = %f\n", best_gini)
-    c.printf("return split_val = %f\n", split_val)
     var ans:float[2]
     ans[0] = best_gini 
     ans[1] = split_val 
@@ -222,19 +221,48 @@ where
   reads (r_data_points, r_trees),
   writes (r_trees)
 do
-    var node = r_trees[unsafe_cast(ptr(Tree, r_trees), tree_index)]
+    var node_ptr = unsafe_cast(ptr(Tree, r_trees), tree_index)
+    var node = r_trees[node_ptr]
     var nPos : float = 0
     for i = 0,  node.n + 1 do
         nPos += r_data_points[node.data[i]].label 
     end 
     -- ratio of positive points 
     var pos_ratio : float = nPos/node.n 
-    node.gini = compute_gini(pos_ratio)
+    var best_gini = compute_gini(pos_ratio)
+    if best_gini == 0.0 then return end 
+    r_trees[node_ptr].gini = best_gini 
+
+    var split_feature : uint8 
+    var split_val:float 
     for feature = 0, num_feature do
         var result : float[2] = split_by_feature(r_trees, r_data_points, tree_index, feature)
-        c.printf("%f\n", result[0])
-        c.printf("%f\n", result[1])
+        if result[0] < best_gini then
+            best_gini = result[0]
+            split_val = result[1]
+            split_feature = feature 
+        end 
     end 
+    r_trees[node_ptr].split_feature = split_feature
+    r_trees[node_ptr].split_val = split_val 
+    -- split the region of data points into two 
+    var left_ptr = unsafe_cast(ptr(Tree, r_trees), node.left)
+    var right_ptr = unsafe_cast(ptr(Tree, r_trees), node.right)
+    var n_left = 0
+    var n_right = 0
+    for i = 0, node.n do
+        var row = node.data[i]
+        var point = r_data_points[row]
+        if point.features[split_feature] <= split_val then
+            r_trees[left_ptr].data[n_left] = row 
+            n_left += 1
+        else
+            r_trees[right_ptr].data[n_right] = row 
+            n_right += 1
+        end 
+    end 
+    r_trees[left_ptr].n = n_left 
+    r_trees[right_ptr].n = n_right 
 end 
 
 
@@ -246,48 +274,38 @@ where
   reads (r_data_points, r_trees),
   writes (r_trees)
 do
-    split_node(r_trees, r_data_points, 0) 
+    for t_index in r_trees do 
+        split_node(r_trees, r_data_points, t_index) 
+    end 
 end 
 
+-- predict a single point 
+--------------------------------------------------------------------
+task predict_point(r_trees : region(Tree), 
+           point : DataPoint)
+where
+  reads (r_trees)
+do
+    return 1
+end 
 
 -- test a tree on data points 
 --------------------------------------------------------------------
--- task test(r_data_points : region(DataPoint),
---            tree : Tree)
--- where
---   reads (r_data_points)
--- do
--- end 
--- sort data points by a certain feature
---------------------------------------------------------------------
--- task sort_by_feature(r_data_points : region(DataPoint),
---                     feature_ind: uint32)
---     std.qsort(r_data_points, n_data_points, c.sizeof(DataPoint), comp_fn)
--- end 
+task test(r_trees : region(Tree), 
+           r_data_points : region(DataPoint))
+where
+  reads (r_data_points, r_trees)
+do
+    var n = 0
+    var correct : float = 0
+    for e in r_data_points do
+        var prediction = predict_point(r_trees, r_data_points[e])
+        correct += [int](prediction == r_data_points[e].label)
+        n += 1
+    end 
+    return correct / n 
+end 
 
--- task sort_on_feature(r_data_points : region(DataPoint),
---                      feature       : uint32)
--- where
---   reads (r_data_points.features),
---   writes (r_data_points.ranks)
--- do
---     for i in r_data_points do
---         c.printf("%f\t", r_data_points[i].features[feature].val)
---     end 
--- end 
-
-
--- sort data points 
---------------------------------------------------------------------
--- task sort_data(r_data_points : region(DataPoint))
--- where
---   reads (r_data_points.features),
---   writes (r_data_points.ranks)
--- do
---     for i = 0, num_feature do
---         sort_on_feature(r_data_points, i)
---     end 
--- end 
 
 -- Main Task 
 --------------------------------------------------------------------
@@ -307,14 +325,21 @@ task main()
   var n_trees = cmath.pow(2, config.max_depth) - 1
   var r_trees = region(ispace(ptr, n_trees), Tree)
   init_trees(r_trees, config.num_row, config.max_depth)
+  c.printf("\n**** INIT ******\n")
   show_trees(r_trees)
 
   ------------------ Train ----------------------
   train(r_trees, r_data_points)
 
+  c.printf("\n**** Train Done ******\n")
+  show_trees(r_trees)
+
   -- tree:show()
 
   ------------------ Test ----------------------
+  var train_acc = test(r_trees, r_data_points)
+  c.printf("Train Acc: %f\n", train_acc)
+  c.printf("Test  Acc: %f\n", train_acc)
   -- var r_test = region(ispace(ptr, config.num_row), DataPoint)
   -- read_data(r_test, config.num_row, config.input_train)
   -- test(r_test, tree)
