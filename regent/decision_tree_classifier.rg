@@ -4,6 +4,7 @@
 
 import "regent"
 require("util")
+require("CONFIG")
 
 local DecisionTreeConfig = require("decision_tree_config")
 -- local Tree = require("decision_tree_lib")
@@ -14,15 +15,8 @@ local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 -- local List = require("terralist")
 
+local max_row = 1000
 local num_feature = 4
-
--- Field Space for each cell
-------------------------------------
-fspace Cell {
-  row: uint64;
-  col: uint64;
-  val: double;
-}
 
 -- Field Space for each data point 
 ------------------------------------
@@ -32,21 +26,26 @@ fspace DataPoint {
   -- classification label 
   label      : uint32;  
   -- features: an array of cells 
-  features   : Cell[num_feature];         
-  -- rank for each feature 
-  ranks      : uint64[num_feature];
+  features   : float[num_feature];         
 }
 
-fspace Tree(rtop : region(ptr, DataPoint)) {
-  -- rleft : region(ptr, DataPoint),
-  -- rright : region(ptr, DataPoint),
-  -- left : ptr(Tree),
-  -- right : ptr(Tree(rright), rright),
+fspace Tree{
+    left : uint32,
+    right: uint32,
+    depth: uint32,    -- depth
+    -- for leaf node only, {-1: non-labeled | 0/1: label}
+    label         : int32,
+    -- index of splitting feature | -1 for not splitting 
+    split_feature : int32,     
+    split_val     : float;    -- value of splitting feature
+    gini          : float;    -- gini index 
+    n             : uint64;    -- number of data points in this node
+    data          : uint64[max_row]
 }
 
 
--- Read Row from File 
---------------------------------------------------------------------
+
+-- Read Row from File --------------------------------------------------------------------
 terra read_row(f : &c.FILE, label : &uint32, feature : &float)
       return c.fscanf(f, "%d %f %f %f %f", &label[0], &feature[0], &feature[1], &feature[2], &feature[3]) == num_feature + 1
 end
@@ -63,7 +62,7 @@ do
         if k <= 0 then break end  
         -- var data = r_data_points[i]
         var feature = data.features  
-        c.printf("%3d -> %.2f %.2f %.2f %.2f\n", data.label, feature[0].val, feature[1].val, feature[2].val, feature[3].val)
+        c.printf("%3d -> %.2f %.2f %.2f %.2f\n", data.label, feature[0], feature[1], feature[2], feature[3])
         k -= 1
     end
 end
@@ -87,9 +86,7 @@ do
     r_data_points[row].row = row
     r_data_points[row].label = label[0]
     for col = 1, num_feature + 1 do
-        r_data_points[row].features[col-1].row = row
-        r_data_points[row].features[col-1].col = col
-        r_data_points[row].features[col-1].val = feature[col-1]
+        r_data_points[row].features[col-1] = feature[col-1]
     end 
   end 
   -- c.printf("--------- Read Data Done -------------\n")
@@ -104,6 +101,7 @@ end
 -- task best_split(r_data_points : region(DataPoint))
 -- end 
 
+
 -- Decision Tree Algorithm 
 --------------------------------------------------------------------
 -- task build_tree(r_data_points : region(DataPoint),
@@ -115,12 +113,55 @@ end
 -- terra comp_fn(p1:DataPoint, p2:DataPoint)
 -- end 
 -- 
--- -- construct a decision tree 
--- --------------------------------------------------------------------
-task construct_tree(r_data_points : region(ispace(ptr), DataPoint),
-                n : uint64, 
+
+-- show trees 
+--------------------------------------------------------------------
+task show_trees(r_trees : region(ispace(ptr), Tree))
+where
+    reads (r_trees)
+do
+    c.printf("--------------- Trees ------------------\n")
+    for t in r_trees do
+        for i = 1, t.depth do
+            c.printf("\t")
+        end 
+        c.printf("ID=%d\tDepth=%d\tLeft=%d\tRight=%d\n", t, t.depth, t.left, t.right)
+    end 
+    c.printf("----------------------------------------\n")
+end 
+
+-- init a region of decision trees 
+--------------------------------------------------------------------
+task init_trees(r_trees : region(ispace(ptr), Tree),
+                num_row : uint64, 
                 max_depth: uint32)
-    var tree = region(ispace(ptr, n), Tree(wild))
+where
+    reads writes(r_trees)
+do
+    -- init root node 
+    var root_ptr = unsafe_cast(ptr(Tree, r_trees), 0)
+    var root = r_trees[root_ptr]
+    root.n = num_row 
+    for i = 0, num_row do
+        root.data[i] = i
+    end 
+    -- init all other trees 
+    var child = 1
+    var depth = 1
+    var n_samelevel = 1
+    for t in r_trees do
+        t.split_feature = -1
+        t.left = child
+        t.right = child + 1
+        t.depth = depth
+        if n_samelevel == cmath.pow(2, depth-1) then
+            depth += 1
+            n_samelevel = 1
+        else
+            n_samelevel += 1
+        end 
+        child += 2
+    end 
     -- var n:uint64 = 0
     -- -- var data = ispace(int1d, 1000)
     -- var data : uint64[1000]
@@ -264,11 +305,12 @@ task main()
   var r_data_points = region(ispace(ptr, config.num_row), DataPoint)
   read_data(r_data_points, config.num_row, config.input_train)
 
-  -- sort_data(r_data_points)
-  -- sort_by_feature(r_data_points, 1)
-
   peek(r_data_points, 10)
-  -- var tree = construct_tree(r_data_points, config.num_row, config.max_depth)
+
+  var n_trees = cmath.pow(2, config.max_depth) - 1
+  var r_trees = region(ispace(ptr, n_trees), Tree)
+  init_trees(r_trees, config.num_row, config.max_depth)
+  show_trees(r_trees)
 
   ------------------ Train ----------------------
   -- train(r_data_points, tree)
