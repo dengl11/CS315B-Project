@@ -44,7 +44,6 @@ fspace Tree{
 }
 
 
-
 -- Read Row from File --------------------------------------------------------------------
 terra read_row(f : &c.FILE, label : &uint32, feature : &float)
       return c.fscanf(f, "%d %f %f %f %f", &label[0], &feature[0], &feature[1], &feature[2], &feature[3]) == num_feature + 1
@@ -125,7 +124,7 @@ do
         for i = 1, t.depth do
             c.printf("\t")
         end 
-        c.printf("ID=%d\tDepth=%d\tLeft=%d\tRight=%d\n", t, t.depth, t.left, t.right)
+        c.printf("ID=%d\tDepth=%d\tLeft=%d\tRight=%d\tn=%d\n", t, t.depth, t.left, t.right, t.n)
     end 
     c.printf("----------------------------------------\n")
 end 
@@ -140,10 +139,9 @@ where
 do
     -- init root node 
     var root_ptr = unsafe_cast(ptr(Tree, r_trees), 0)
-    var root = r_trees[root_ptr]
-    root.n = num_row 
+    r_trees[root_ptr].n = num_row 
     for i = 0, num_row do
-        root.data[i] = i
+        r_trees[root_ptr].data[i] = i
     end 
     -- init all other trees 
     var child = 1
@@ -162,15 +160,6 @@ do
         end 
         child += 2
     end 
-    -- var n:uint64 = 0
-    -- -- var data = ispace(int1d, 1000)
-    -- var data : uint64[1000]
-    -- for row in r_data_points do 
-    --     n += 1
-    --     data[n] = n
-    -- end 
-    -- tree:init(n, max_depth, data) 
-    -- return tree 
 end
 -- 
 -- 
@@ -178,79 +167,87 @@ end
 -- --------------------------------------------------------------------
 -- -- feature:  index of feature in feature list to be splited 
 -- -- return {gini_index, split_val}
--- task split_by_feature(r_data_points : region(DataPoint), 
---                       node: DTNode,
---                       feature : uint32)
--- where
---   reads (r_data_points)
--- do
---     var best_gini = node.gini 
---     var split_val : float 
---     for i in r_data_points do
---         var curr_val = r_data_points[i].features[feature].val
---         var num_pos_left : float = 0
---         var num_left : float = 0
---         var num_pos_right : float = 0
---         var num_right : float = 0
---         for j in r_data_points do
---             if r_data_points[j].features[feature].val <= curr_val then
---                 num_pos_left += r_data_points[i].label 
---                 num_left += 1
---             else
---                 num_pos_right += r_data_points[i].label 
---                 num_right += 1
---             end 
---         end 
---         -- weighted average of gini index after splitted 
---         var curr_gini = 
---                 (num_left * compute_gini(num_pos_left/num_left) 
---                 + num_right * compute_gini(num_pos_right/num_right)) / node.n 
---         -- update best gini and split value 
---         if curr_gini < best_gini then
---             best_gini = curr_gini
---             split_val = curr_val 
---         end 
---     end 
---     c.printf("return best_gini = %f\n", best_gini)
---     var ans:float[2]
---     ans[0] = best_gini 
---     ans[1] = split_val 
---     return ans 
--- end 
+task split_by_feature(r_trees : region(Tree), 
+                      r_data_points : region(DataPoint), 
+                      tree_index : uint8, 
+                      feature : uint32)
+where
+  reads (r_data_points, r_trees)
+do
+    var node = r_trees[unsafe_cast(ptr(Tree, r_trees), tree_index)]
+    var best_gini = node.gini 
+    var split_val : float 
+    for i = 0, node.n do
+        var curr_val = r_data_points[i].features[feature]
+        var num_pos_left : float = 0
+        var num_left : float = 0
+        var num_pos_right : float = 0
+        var num_right : float = 0
+        for j in r_data_points do
+            if r_data_points[j].features[feature] <= curr_val then
+                num_pos_left += r_data_points[i].label 
+                num_left += 1
+            else
+                num_pos_right += r_data_points[i].label 
+                num_right += 1
+            end 
+        end 
+        -- weighted average of gini index after splitted 
+        var curr_gini = 
+                (num_left * compute_gini(num_pos_left/num_left) 
+                + num_right * compute_gini(num_pos_right/num_right)) / node.n 
+        -- update best gini and split value 
+        if curr_gini < best_gini then
+            best_gini = curr_gini
+            split_val = curr_val 
+        end 
+    end 
+    c.printf("return best_gini = %f\n", best_gini)
+    c.printf("return split_val = %f\n", split_val)
+    var ans:float[2]
+    ans[0] = best_gini 
+    ans[1] = split_val 
+    return ans 
+end 
 
 
 
 
 -- split a node into two 
 --------------------------------------------------------------------
--- task split_node(r_data_points : region(DataPoint), node : DTNode)
--- where
---   reads (r_data_points)
--- do
---     var nPos : float = 0
---     for i = 0,  node.n + 1 do
---         nPos += r_data_points[node.data[i]].label 
---     end 
---     -- ratio of positive points 
---     var pos_ratio : float = nPos/node.n 
---     node:set_gini(compute_gini(pos_ratio))
---     c.printf("local gini = %f\n", node.gini)
---     for feature = 0, num_feature do
---         var result : float[2] = split_by_feature(r_data_points, node, feature)
---         c.printf("%f\n", result[0])
---     end 
--- end 
+task split_node(r_trees : region(Tree), 
+                r_data_points : region(DataPoint), 
+                tree_index : uint8)
+where
+  reads (r_data_points, r_trees),
+  writes (r_trees)
+do
+    var node = r_trees[unsafe_cast(ptr(Tree, r_trees), tree_index)]
+    var nPos : float = 0
+    for i = 0,  node.n + 1 do
+        nPos += r_data_points[node.data[i]].label 
+    end 
+    -- ratio of positive points 
+    var pos_ratio : float = nPos/node.n 
+    node.gini = compute_gini(pos_ratio)
+    for feature = 0, num_feature do
+        var result : float[2] = split_by_feature(r_trees, r_data_points, tree_index, feature)
+        c.printf("%f\n", result[0])
+        c.printf("%f\n", result[1])
+    end 
+end 
 
 
 -- train a tree on data points 
 --------------------------------------------------------------------
--- task train(r_data_points : region(DataPoint),
---            tree : Tree)
--- where
---   reads (r_data_points)
--- do
---     split_node(r_data_points, tree.root) 
--- end 
+task train(r_trees : region(Tree), 
+           r_data_points : region(DataPoint))
+where
+  reads (r_data_points, r_trees),
+  writes (r_trees)
+do
+    split_node(r_trees, r_data_points, 0) 
+end 
 
 
 -- test a tree on data points 
@@ -313,7 +310,7 @@ task main()
   show_trees(r_trees)
 
   ------------------ Train ----------------------
-  -- train(r_data_points, tree)
+  train(r_trees, r_data_points)
 
   -- tree:show()
 
