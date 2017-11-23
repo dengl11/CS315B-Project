@@ -33,6 +33,7 @@ fspace Tree{
     left : uint32,
     right: uint32,
     depth: uint32,    -- depth
+    max_depth: uint32,    -- depth
     -- for leaf node only, {-1: non-labeled | 0/1: label}
     label         : int32,
     -- index of splitting feature | -1 for not splitting 
@@ -50,7 +51,7 @@ terra read_row(f : &c.FILE, label : &uint32, feature : &float)
 end
 
 
--- utility function: Peeak Head 
+-- utility function: Peek Head 
 --------------------------------------------------------------------
 task peek(r_data_points : region(ispace(ptr), DataPoint),
           k : uint8)
@@ -59,7 +60,6 @@ where
 do
     for data in r_data_points do
         if k <= 0 then break end  
-        -- var data = r_data_points[i]
         var feature = data.features  
         c.printf("%3d -> %.2f %.2f %.2f %.2f\n", data.label, feature[0], feature[1], feature[2], feature[3])
         k -= 1
@@ -92,27 +92,6 @@ do
 end
 
 
-
--- Find Best Split 
---------------------------------------------------------------------
--- first sort the feature
--- return: (feature_index, feature_val)
--- task best_split(r_data_points : region(DataPoint))
--- end 
-
-
--- Decision Tree Algorithm 
---------------------------------------------------------------------
--- task build_tree(r_data_points : region(DataPoint),
---                 depth: uint8)
--- end 
--- 
--- local std = terralib.includec("stdlib.h")
--- 
--- terra comp_fn(p1:DataPoint, p2:DataPoint)
--- end 
--- 
-
 -- show trees 
 --------------------------------------------------------------------
 task show_trees(r_trees : region(ispace(ptr), Tree))
@@ -121,10 +100,16 @@ where
 do
     c.printf("--------------- Trees ------------------\n")
     for t in r_trees do
-        for i = 1, t.depth do
+        for i = 0, t.depth do
             c.printf("\t")
         end 
-        c.printf("[%d]\tL=%d\tR=%d\tn=%d\tG=%f\tSF=%d\tSV=%f \n", t, t.left, t.right, t.n, t.gini, t.split_feature, t.split_val)
+        c.printf("[%d]\tL=%d\tR=%d\tn=%d\tG=%.2f", t, t.left, t.right, t.n, t.gini)
+        if t.split_feature < 0 then
+            c.printf("->%d", t.label)
+        else
+            c.printf("\tSF=%d\tSV=%.1f", t.split_feature, t.split_val)
+        end 
+        c.printf("\n")
     end 
     c.printf("----------------------------------------\n")
 end 
@@ -145,14 +130,15 @@ do
     end 
     -- init all other trees 
     var child = 1
-    var depth = 1
+    var depth = 0
     var n_samelevel = 1
     for t in r_trees do
         t.split_feature = -1
         t.left = child
         t.right = child + 1
         t.depth = depth
-        if n_samelevel == cmath.pow(2, depth-1) then
+        t.max_depth = max_depth
+        if n_samelevel == cmath.pow(2, depth) then
             depth += 1
             n_samelevel = 1
         else
@@ -165,8 +151,8 @@ end
 -- 
 -- -- split a node by feature 
 -- --------------------------------------------------------------------
--- -- feature:  index of feature in feature list to be splited 
--- -- return {gini_index, split_val}
+-- feature:  index of feature in feature list to be splited 
+-- return {gini_index, split_val}
 task split_by_feature(r_trees : region(Tree), 
                       r_data_points : region(DataPoint), 
                       tree_index : uint8, 
@@ -197,6 +183,7 @@ do
         var curr_gini = 
                 (num_left * compute_gini(num_pos_left/num_left) 
                 + num_right * compute_gini(num_pos_right/num_right)) / node.n 
+       -- c.printf("val %f -> %f\n", curr_val, curr_gini)
         -- update best gini and split value 
         if curr_gini < best_gini then
             best_gini = curr_gini
@@ -224,19 +211,25 @@ do
     var node_ptr = unsafe_cast(ptr(Tree, r_trees), tree_index)
     var node = r_trees[node_ptr]
     var nPos : float = 0
-    for i = 0,  node.n + 1 do
+    for i = 0,  node.n do
         nPos += r_data_points[node.data[i]].label 
     end 
     -- ratio of positive points 
     var pos_ratio : float = nPos/node.n 
     var best_gini = compute_gini(pos_ratio)
-    if best_gini == 0.0 then return end 
+
     r_trees[node_ptr].gini = best_gini 
+    -- stop splitting criteria 
+    if node.depth >= node.max_depth or best_gini == 0.0 then 
+        r_trees[tree_index].label = [int](nPos > node.n / 2)
+        return 
+    end 
 
     var split_feature : uint8 
     var split_val:float 
     for feature = 0, num_feature do
         var result : float[2] = split_by_feature(r_trees, r_data_points, tree_index, feature)
+        -- c.printf("feature: %d -> %f\n", feature, result[0])
         if result[0] < best_gini then
             best_gini = result[0]
             split_val = result[1]
@@ -286,7 +279,17 @@ task predict_point(r_trees : region(Tree),
 where
   reads (r_trees)
 do
-    return 1
+    var tree_index = 0
+    var node = r_trees[unsafe_cast(ptr(Tree, r_trees), tree_index)]
+    while node.split_feature >= 0 do
+        if point.features[node.split_feature] <= node.split_val then
+            tree_index = node.left
+        else
+            tree_index = node.right
+        end 
+        node = r_trees[unsafe_cast(ptr(Tree, r_trees), tree_index)]
+    end 
+    return node.label
 end 
 
 -- test a tree on data points 
@@ -317,31 +320,33 @@ task main()
 
   ------------------ Read in Data ----------------------
   -- create a region of data points
-  var r_data_points = region(ispace(ptr, config.num_row), DataPoint)
-  read_data(r_data_points, config.num_row, config.input_train)
+  var r_train = region(ispace(ptr, config.train_row), DataPoint)
+  read_data(r_train, config.train_row, config.input_train)
 
-  peek(r_data_points, 10)
+  var r_test = region(ispace(ptr, config.test_row), DataPoint)
+  read_data(r_test, config.test_row, config.input_test)
 
-  var n_trees = cmath.pow(2, config.max_depth) - 1
+  peek(r_train, 10)
+
+  var n_trees = cmath.pow(2, config.max_depth + 1) - 1
   var r_trees = region(ispace(ptr, n_trees), Tree)
-  init_trees(r_trees, config.num_row, config.max_depth)
+  init_trees(r_trees, config.train_row, config.max_depth)
   c.printf("\n**** INIT ******\n")
   show_trees(r_trees)
 
   ------------------ Train ----------------------
-  train(r_trees, r_data_points)
+  train(r_trees, r_train)
 
   c.printf("\n**** Train Done ******\n")
   show_trees(r_trees)
 
-  -- tree:show()
-
-  ------------------ Test ----------------------
-  var train_acc = test(r_trees, r_data_points)
-  c.printf("Train Acc: %f\n", train_acc)
-  c.printf("Test  Acc: %f\n", train_acc)
-  -- var r_test = region(ispace(ptr, config.num_row), DataPoint)
-  -- read_data(r_test, config.num_row, config.input_train)
+------------------ Test ----------------------
+  var train_acc = test(r_trees, r_train)
+  var test_acc = test(r_trees, r_test)
+  c.printf("Train Acc: %.2f\n", train_acc)
+  c.printf("Test  Acc: %.2f\n", test_acc)
+  -- var r_test = region(ispace(ptr, config.train_row), DataPoint)
+  -- read_data(r_test, config.train_row, config.input_train)
   -- test(r_test, tree)
 end
 

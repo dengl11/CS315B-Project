@@ -5,12 +5,14 @@ num_feature = 4
 
 local c = regentlib.c
 local cstring = terralib.includec("string.h")
+local std = terralib.includec("stdlib.h")
 
 struct DecisionTreeConfig
 {
   input_train  : int8[512],
   input_test  : int8[512],
-  num_row: uint64;
+  train_row: uint64;
+  test_row: uint64;
   num_col: uint64;
   max_depth: uint64; 
 }
@@ -22,9 +24,11 @@ terra show_config(config : DecisionTreeConfig)
   c.printf("****************************************\n")
   c.printf("* Decision Tree Classifier             *\n")
   c.printf("*                                      *\n")
+  c.printf("* Max Depth: %d\n",  config.max_depth)
   c.printf("* Train Input: %s\n",  config.input_train)
   c.printf("* Test  Input: %s\n",  config.input_test)
-  c.printf("* Number of Rows  :  %11lu       *\n",  config.num_row)
+  c.printf("* Train - Number of Rows  :  %11lu       *\n",  config.train_row)
+  c.printf("* Test  - Number of Rows  :  %11lu       *\n",  config.test_row)
   c.printf("* Number of Cols  :  %11lu       *\n",  config.num_col)
   c.printf("****************************************\n") 
 end
@@ -62,6 +66,9 @@ terra DecisionTreeConfig:initialize_from_command()
   while i < args.argc do
     if cstring.strcmp(args.argv[i], "-h") == 0 then
       print_usage_and_abort()
+    elseif cstring.strcmp(args.argv[i], "-d") == 0 then
+        i = i + 1
+        self.max_depth = std.atoi(args.argv[i])
     elseif cstring.strcmp(args.argv[i], "-train") == 0 then
       i = i + 1
 
@@ -71,12 +78,20 @@ terra DecisionTreeConfig:initialize_from_command()
         c.abort()
       end
       cstring.strcpy(self.input_train, args.argv[i])
-      c.fscanf(file, "%llu\n%llu\n", &self.num_row, &self.num_col)
+      c.fscanf(file, "%llu\n%llu\n", &self.train_row, &self.num_col)
       input_given = true
       c.fclose(file)
     elseif cstring.strcmp(args.argv[i], "-test") == 0 then
         i = i + 1
+          var file = c.fopen(args.argv[i], "rb")
+          if file == nil then
+            c.printf("File '%s' doesn't exist!\n", args.argv[i])
+            c.abort()
+          end
         cstring.strcpy(self.input_test, args.argv[i])
+          c.fscanf(file, "%llu\n%llu\n", &self.test_row, &self.num_col)
+          input_given = true
+          c.fclose(file)
     end
         i = i + 1
   end

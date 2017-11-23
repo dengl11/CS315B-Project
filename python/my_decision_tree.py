@@ -72,6 +72,7 @@ class DTNode(object):
             right = labels[i+1:]
             curr_gini = len(left) * gini(left) + len(right) * gini(right)
             curr_gini /= self.n 
+            # print("{}->{}".format(feature_val, curr_gini))
             if curr_gini < lowest_gini:
                 lowest_gini = curr_gini 
                 split_val = feature_val 

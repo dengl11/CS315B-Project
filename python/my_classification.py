@@ -10,7 +10,7 @@ from sklearn.metrics import accuracy_score
 from my_decision_tree import *
 
 # param
-max_depth = 3
+max_depth = 2
 
 ######## Iris: 3 classes ######
 dataset = load_iris()
