@@ -335,19 +335,19 @@ task main()
   show_trees(r_trees)
 
   ------------------ Train ----------------------
+  var train_start = c.legion_get_current_time_in_micros()
   train(r_trees, r_train)
+  var train_stop = c.legion_get_current_time_in_micros()
+  c.printf("Training time: %.4f sec\n", (train_stop - train_start) * 1e-6)
 
   c.printf("\n**** Train Done ******\n")
   show_trees(r_trees)
 
------------------- Test ----------------------
+  ------------------ Test ----------------------
   var train_acc = test(r_trees, r_train)
   var test_acc = test(r_trees, r_test)
   c.printf("Train Acc: %.2f\n", train_acc)
   c.printf("Test  Acc: %.2f\n", test_acc)
-  -- var r_test = region(ispace(ptr, config.train_row), DataPoint)
-  -- read_data(r_test, config.train_row, config.input_train)
-  -- test(r_test, tree)
 end
 
 regentlib.start(main)
