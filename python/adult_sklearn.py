@@ -9,7 +9,7 @@ from sklearn.tree import DecisionTreeClassifier
 from my_decision_tree import *
 
 # param
-max_depth = 2
+max_depth = 3
 # max_depth = 6
 
 def get_data(input):

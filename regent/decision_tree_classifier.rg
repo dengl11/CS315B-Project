@@ -14,11 +14,10 @@ local sqrt  = regentlib.sqrt(float)
 local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 
-local max_row = 1000
+local max_row = 100
 -- local max_row = 3000
 
--- local num_feature = 4
-local num_feature = 6
+local num_feature = 4
 
 -- Field Space for each data point 
 ------------------------------------
@@ -274,13 +273,24 @@ end
 -- train a tree on data points 
 --------------------------------------------------------------------
 task train(r_trees : region(Tree), 
-           r_data_points : region(DataPoint))
+           r_data_points : region(DataPoint),
+           num_tree : int)
 where
   reads (r_data_points, r_trees),
   writes (r_trees)
 do
-    for t_index in r_trees do 
-        split_node(r_trees, r_data_points, t_index) 
+    var tree_coloring = ispace(int1d, num_tree)
+    var tree_partition = partition(equal, r_trees, tree_coloring)
+
+    var start = 0
+    var scaler = 1
+    while start < num_tree do 
+        __demand(__parallel)
+        for t_index = start, start + scaler do 
+            split_node(tree_partition[t_index], r_data_points, t_index) 
+        end 
+        start += scaler 
+        scaler *= 2
     end 
 end 
 
@@ -353,7 +363,7 @@ task main()
 
   ------------------ Train ----------------------
   var train_start = c.legion_get_current_time_in_micros()
-  train(r_trees, r_train)
+  train(r_trees, r_train, n_trees)
   var train_stop = c.legion_get_current_time_in_micros()
   c.printf("Training time: %.4f sec\n", (train_stop - train_start) * 1e-6)
 
