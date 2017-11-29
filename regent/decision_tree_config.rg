@@ -1,8 +1,6 @@
 -------------------------------------------------------------
 -- Configuration of Classifier 
 -------------------------------------------------------------
-num_feature = 4
-
 local c = regentlib.c
 local cstring = terralib.includec("string.h")
 local std = terralib.includec("stdlib.h")

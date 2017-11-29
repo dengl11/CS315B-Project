@@ -14,9 +14,11 @@ local sqrt  = regentlib.sqrt(float)
 local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 -- local List = require("terralist")
-
 local max_row = 1000
+-- local max_row = 50000
+
 local num_feature = 4
+-- local num_feature = 6
 
 -- Field Space for each data point 
 ------------------------------------
@@ -45,9 +47,14 @@ fspace Tree{
 }
 
 
--- Read Row from File --------------------------------------------------------------------
+-- Read Row from File
+--------------------------------------------------------------------
 terra read_row(f : &c.FILE, label : &uint32, feature : &float)
+     if num_feature == 4 then
       return c.fscanf(f, "%d %f %f %f %f", &label[0], &feature[0], &feature[1], &feature[2], &feature[3]) == num_feature + 1
+     else 
+      return c.fscanf(f, "%d %f %f %f %f %f %f", &label[0], &feature[0], &feature[1], &feature[2], &feature[3], &feature[4], &feature[5]) == num_feature + 1
+     end 
 end
 
 
@@ -114,6 +121,7 @@ do
     c.printf("----------------------------------------\n")
 end 
 
+
 -- init a region of decision trees 
 --------------------------------------------------------------------
 task init_trees(r_trees : region(ispace(ptr), Tree),
@@ -147,10 +155,10 @@ do
         child += 2
     end 
 end
--- 
--- 
--- -- split a node by feature 
--- --------------------------------------------------------------------
+ 
+ 
+-- split a node by feature 
+--------------------------------------------------------------------
 -- feature:  index of feature in feature list to be splited 
 -- return {gini_index, split_val}
 task split_by_feature(r_trees : region(Tree), 
@@ -208,6 +216,7 @@ where
   reads (r_data_points, r_trees),
   writes (r_trees)
 do
+    c.printf("-- splitting tree %d\n", tree_index)
     var node_ptr = unsafe_cast(ptr(Tree, r_trees), tree_index)
     var node = r_trees[node_ptr]
     var nPos : float = 0
@@ -272,6 +281,7 @@ do
     end 
 end 
 
+
 -- predict a single point 
 --------------------------------------------------------------------
 task predict_point(r_trees : region(Tree), 
@@ -292,7 +302,8 @@ do
     return node.label
 end 
 
--- test a tree on data points 
+
+-- test on data points 
 --------------------------------------------------------------------
 task test(r_trees : region(Tree), 
            r_data_points : region(DataPoint))
@@ -315,39 +326,42 @@ end
 task main()
   ------------------ Init Config ----------------------
   var config : DecisionTreeConfig
-  config:initialize_from_command()
+  --config:initialize_from_command()
   show_config(config)
 
   ------------------ Read in Data ----------------------
   -- create a region of data points
-  var r_train = region(ispace(ptr, config.train_row), DataPoint)
-  read_data(r_train, config.train_row, config.input_train)
+  -- var r_train = region(ispace(ptr, config.train_row), DataPoint)
+  -- read_data(r_train, config.train_row, config.input_train)
 
-  var r_test = region(ispace(ptr, config.test_row), DataPoint)
-  read_data(r_test, config.test_row, config.input_test)
+  -- var r_test = region(ispace(ptr, config.test_row), DataPoint)
 
-  peek(r_train, 10)
+  c.printf("\n**** Read Data ******\n")
+  -- read_data(r_test, config.test_row, config.input_test)
+  c.printf("\n**** Data Loaded ******\n")
 
-  var n_trees = cmath.pow(2, config.max_depth + 1) - 1
-  var r_trees = region(ispace(ptr, n_trees), Tree)
-  init_trees(r_trees, config.train_row, config.max_depth)
-  c.printf("\n**** INIT ******\n")
-  show_trees(r_trees)
+  -- peek(r_train, 10)
+
+  -- var n_trees = cmath.pow(2, config.max_depth + 1) - 1
+  -- var r_trees = region(ispace(ptr, n_trees), Tree)
+  -- init_trees(r_trees, config.train_row, config.max_depth)
+  -- c.printf("\n**** INIT ******\n")
+  -- show_trees(r_trees)
 
   ------------------ Train ----------------------
-  var train_start = c.legion_get_current_time_in_micros()
-  train(r_trees, r_train)
-  var train_stop = c.legion_get_current_time_in_micros()
-  c.printf("Training time: %.4f sec\n", (train_stop - train_start) * 1e-6)
+  -- var train_start = c.legion_get_current_time_in_micros()
+  -- train(r_trees, r_train)
+  -- var train_stop = c.legion_get_current_time_in_micros()
+  -- c.printf("Training time: %.4f sec\n", (train_stop - train_start) * 1e-6)
 
-  c.printf("\n**** Train Done ******\n")
-  show_trees(r_trees)
+  -- c.printf("\n**** Train Done ******\n")
+  -- show_trees(r_trees)
 
-  ------------------ Test ----------------------
-  var train_acc = test(r_trees, r_train)
-  var test_acc = test(r_trees, r_test)
-  c.printf("Train Acc: %.2f\n", train_acc)
-  c.printf("Test  Acc: %.2f\n", test_acc)
+  -- ------------------ Test ----------------------
+  -- var train_acc = test(r_trees, r_train)
+  -- var test_acc = test(r_trees, r_test)
+  -- c.printf("Train Acc: %.2f\n", train_acc)
+  -- c.printf("Test  Acc: %.2f\n", test_acc)
 end
 
 regentlib.start(main)

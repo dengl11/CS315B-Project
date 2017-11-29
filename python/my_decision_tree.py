@@ -38,7 +38,9 @@ class DTNode(object):
         self.X = X
         self.y = y
         self.n = len(y)
-        self.gini = gini(y)
+        if self.n > 0:
+            self.gini = gini(y)
+
         self.num_feature = X.shape[1]
         
     def __str__(self):
@@ -61,6 +63,7 @@ class DTNode(object):
         Return: 
         """
         # sort by feature values 
+        print("Splitting on Feature {} at depth {}".format(feature, self.depth))
         pairs = sorted(zip(self.X[:, feature], self.y)) # [(feature_val, label)]
         feature_vals = [x[0] for x in pairs]
         labels = [x[1] for x in pairs]
@@ -123,6 +126,7 @@ class DTNode(object):
 
         Return: 
         """
+        if self.n <= 1: return False
         if self.depth >= max_depth: return False 
         if self.gini == 0: return False
         return True 
