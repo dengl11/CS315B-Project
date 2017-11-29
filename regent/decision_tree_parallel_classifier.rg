@@ -15,8 +15,10 @@ local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 
 local max_row = 1000
+-- local max_row = 3000
 
 local num_feature = 6
+
 
 -- Field Space for each data point 
 ------------------------------------
@@ -271,13 +273,24 @@ end
 -- train a tree on data points 
 --------------------------------------------------------------------
 task train(r_trees : region(Tree), 
-           r_data_points : region(DataPoint))
+           r_data_points : region(DataPoint),
+           num_tree : int)
 where
   reads (r_data_points, r_trees),
   writes (r_trees)
 do
-    for t_index in r_trees do 
-        split_node(r_trees, r_data_points, t_index) 
+    var tree_coloring = ispace(int1d, num_tree)
+    var tree_partition = partition(equal, r_trees, tree_coloring)
+
+    var start = 0
+    var scaler = 1
+    while start < num_tree do 
+        __demand(__parallel)
+        for t_index = start, start + scaler do 
+            split_node(tree_partition[t_index], r_data_points, t_index) 
+        end 
+        start += scaler 
+        scaler *= 2
     end 
     return 1
 end 
@@ -304,21 +317,42 @@ do
 end 
 
 
--- test on data points 
---------------------------------------------------------------------
-task test(r_trees : region(Tree), 
-           r_data_points : region(DataPoint))
+task test_batch(r_trees : region(Tree), 
+          r_data_points : region(DataPoint))
 where
   reads (r_data_points, r_trees)
 do
     var n = 0
     var correct : float = 0
+
     for e in r_data_points do
         var prediction = predict_point(r_trees, r_data_points[e])
         correct += [int](prediction == r_data_points[e].label)
         n += 1
     end 
+
     return correct / n 
+end 
+
+-- test on data points 
+--------------------------------------------------------------------
+task test(r_trees : region(Tree), 
+          r_data_points : region(DataPoint),
+          parallelism : int)
+where
+  reads (r_data_points, r_trees)
+do
+    var data_coloring = ispace(int1d, parallelism)
+    var data_partition = partition(equal, r_data_points, data_coloring)
+
+    var acc : float = 0
+
+    __demand(__parallel)
+    for e in data_partition.colors do
+        acc += test_batch(r_trees, data_partition[e])
+    end 
+
+    return acc / parallelism 
 end 
 
 
@@ -351,20 +385,21 @@ task main()
 
   ------------------ Train ----------------------
   var train_start = c.legion_get_current_time_in_micros()
-  var dummy = train(r_trees, r_train)
+
+  var dummy = train(r_trees, r_train, n_trees)
+
   var train_stop = c.legion_get_current_time_in_micros()
 
-  -- c.printf("\n**** Train Done ******\n")
+  c.printf("\n**** Train Done ******\n")
   -- show_trees(r_trees)
 
   ------------------ Test ----------------------
   var test_start = c.legion_get_current_time_in_micros()
 
-  var train_acc = test(r_trees, r_train)
-  var test_acc = test(r_trees, r_test)
+  var train_acc = test(r_trees, r_train, config.parallelism)
+  var test_acc = test(r_trees, r_test, config.parallelism)
 
   var test_stop = c.legion_get_current_time_in_micros()
-
   c.printf("Training time: %.4f sec\n", (train_stop - train_start) * 1e-6)
   c.printf("Testing  time: %.4f sec\n", (test_stop - test_start) * 1e-6)
 

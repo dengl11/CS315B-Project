@@ -13,6 +13,7 @@ struct DecisionTreeConfig
   test_row: uint64;
   num_col: uint64;
   max_depth: uint64; 
+  parallelism: uint8; 
 }
 
 
@@ -27,7 +28,8 @@ terra show_config(config : DecisionTreeConfig)
   c.printf("* Test  Input: %s\n",  config.input_test)
   c.printf("* Train - Number of Rows  :  %11lu       *\n",  config.train_row)
   c.printf("* Test  - Number of Rows  :  %11lu       *\n",  config.test_row)
-  c.printf("* Number of Cols  :  %11lu       *\n",  config.num_col)
+  c.printf("* Number of Cols          :  %11lu       *\n",  config.num_col)
+  c.printf("* Parallelism             :  %11lu       *\n",  config.parallelism)
   c.printf("****************************************\n") 
 end
 
@@ -58,6 +60,7 @@ end
 terra DecisionTreeConfig:initialize_from_command()
   var input_given = false
   self.max_depth = 3
+  self.parallelism = 0
 
   var args = c.legion_runtime_get_input_args()
   var i = 1
@@ -67,6 +70,9 @@ terra DecisionTreeConfig:initialize_from_command()
     elseif cstring.strcmp(args.argv[i], "-d") == 0 then
         i = i + 1
         self.max_depth = std.atoi(args.argv[i])
+    elseif cstring.strcmp(args.argv[i], "-p") == 0 then
+        i = i + 1
+        self.parallelism = std.atoi(args.argv[i])
     elseif cstring.strcmp(args.argv[i], "-train") == 0 then
       i = i + 1
 
