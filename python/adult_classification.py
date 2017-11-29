@@ -23,10 +23,13 @@ def get_data(input):
     return (X, y)
     
 
-X_train, y_train = get_data("../data/adult/adult_train.tsv")
-X_test, y_test = get_data("../data/adult/adult_test.tsv")
+# X_train, y_train = get_data("../data/adult/adult_train.tsv")
+# X_test, y_test = get_data("../data/adult/adult_test.tsv")
 # X_train, y_train = get_data("../data/adult/adult_train_small.tsv")
 # X_test, y_test = get_data("../data/adult/adult_test_small.tsv")
+
+X_train, y_train = get_data("../data/adult/adult_train_tiny.tsv")
+X_test, y_test = get_data("../data/adult/adult_test_tiny.tsv")
 
 # Tree initialization
 my_tree = MyDecisionTree(max_depth = max_depth)

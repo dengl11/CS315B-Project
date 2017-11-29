@@ -1,3 +1,10 @@
+adult_tiny:
+	clear
+	~/legion/language/regent.py ./decision_tree_classifier.rg\
+		-train ../data/adult/adult_train_tiny.tsv\
+		-test ../data/adult/adult_test_tiny.tsv\
+		-d 1
+
 adult_small:
 	clear
 	~/legion/language/regent.py ./decision_tree_classifier.rg\

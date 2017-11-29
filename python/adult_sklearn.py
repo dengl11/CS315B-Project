@@ -9,7 +9,8 @@ from sklearn.tree import DecisionTreeClassifier
 from my_decision_tree import *
 
 # param
-max_depth = 6
+max_depth = 2
+# max_depth = 6
 
 def get_data(input):
     """return (X, y) for input 
@@ -24,8 +25,10 @@ def get_data(input):
     return (X, y)
     
 
-X_train, y_train = get_data("../data/adult/adult_train.tsv")
-X_test, y_test = get_data("../data/adult/adult_test.tsv")
+X_train, y_train = get_data("../data/adult/adult_train_tiny.tsv")
+X_test, y_test = get_data("../data/adult/adult_test_tiny.tsv")
+# X_train, y_train = get_data("../data/adult/adult_train.tsv")
+# X_test, y_test = get_data("../data/adult/adult_test.tsv")
 
 # construct estimator
 estimator = DecisionTreeClassifier(max_depth=max_depth , random_state=0)
