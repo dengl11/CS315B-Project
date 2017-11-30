@@ -14,8 +14,7 @@ local sqrt  = regentlib.sqrt(float)
 local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 
-local max_row = 1000
--- local max_row = 3000
+local max_row = 7000
 
 local num_feature = 6
 

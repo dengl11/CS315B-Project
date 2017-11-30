@@ -14,7 +14,7 @@ local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 local assert = regentlib.assert
 
-local max_row = 7000
+local max_row = 35000
 
 local num_feature = 6
 
@@ -253,6 +253,9 @@ where
 do
     var node_index = tree_index
     var node = r_trees[node_index]
+
+    if node.n == 0 then return end 
+
     var nPos : float = 0
     var m = node.mapping_head
     for i = 0,  node.n do
@@ -403,7 +406,7 @@ task main()
   var train_stop = c.legion_get_current_time_in_micros()
 
   c.printf("\n**** Train Done ******\n")
-  show_trees(r_trees)
+  -- show_trees(r_trees)
 
   ------------------ Test ----------------------
   var test_start = c.legion_get_current_time_in_micros()
