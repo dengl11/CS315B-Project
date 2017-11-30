@@ -4,15 +4,37 @@ p_adult_tiny:
 	~/legion/language/regent.py ./decision_tree_parallel_classifier.rg\
 		-train ../data/adult/adult_train_tiny.tsv\
 		-test ../data/adult/adult_test_tiny.tsv\
-		-d 8\
+		-d 1\
 		-p 8
+
+adult_tiny_no_map:
+	clear
+	~/legion/language/regent.py ./decision_tree_classifier_no_mapping.rg\
+		-train ../data/adult/adult_train_tiny.tsv\
+		-test ../data/adult/adult_test_tiny.tsv\
+		-d 2
+
+p_adult_medium:
+	clear
+	~/legion/language/regent.py ./decision_tree_parallel_classifier.rg\
+		-train ../data/adult/adult_train_medium.tsv\
+		-test ../data/adult/adult_test_medium.tsv\
+		-p 8\
+		-d 3
+
+adult_medium:
+	clear
+	~/legion/language/regent.py ./decision_tree_classifier.rg\
+		-train ../data/adult/adult_train_medium.tsv\
+		-test ../data/adult/adult_test_medium.tsv\
+		-d 3
 
 adult_tiny:
 	clear
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/adult/adult_train_tiny.tsv\
 		-test ../data/adult/adult_test_tiny.tsv\
-		-d 2
+		-d 3
 
 adult_small:
 	clear

@@ -1,5 +1,5 @@
 -------------------------------------------------------------
--- Classifier of My Decision Tree 
+-- Classifier of My Decision Tree (Sequential)
 -------------------------------------------------------------
 
 import "regent"
@@ -7,7 +7,6 @@ require("util")
 require("CONFIG")
 
 local DecisionTreeConfig = require("decision_tree_config")
--- local Tree = require("decision_tree_lib")
 
 local c = regentlib.c
 local sqrt  = regentlib.sqrt(float)
@@ -15,7 +14,7 @@ local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 local assert = regentlib.assert
 
-local max_row = 1000
+local max_row = 7000
 
 local num_feature = 6
 
@@ -43,8 +42,8 @@ fspace Mapping {
 fspace Tree{
     left : uint32,
     right: uint32,
-    depth: uint32,    -- depth
-    max_depth: uint32,    -- depth
+    depth: uint32,            -- depth
+    max_depth: uint32,        -- depth
     -- for leaf node only, {-1: non-labeled | 0/1: label}
     label         : int32,
     -- index of splitting feature | -1 for not splitting 
@@ -65,6 +64,7 @@ terra read_row(f : &c.FILE, label : &uint32, feature : &float)
       return c.fscanf(f, "%d %f %f %f %f %f %f", &label[0], &feature[0], &feature[1], &feature[2], &feature[3], &feature[4], &feature[5]) == num_feature + 1
      end 
 end
+
 
 
 -- utility function: Peek Head 
@@ -104,7 +104,6 @@ do
         r_data_points[row].features[col-1] = feature[col-1]
     end 
   end 
-  -- c.printf("--------- Read Data Done -------------\n")
 end
 
 
@@ -120,7 +119,7 @@ do
             c.printf("\t")
         end 
         c.printf("[%d]\tM=%zu\tL=%d\tR=%d\tn=%d\tG=%.2f", t, t.mapping_head, t.left, t.right, t.n, t.gini)
-        if t.split_feature < 0 then
+        if t.label >= 0 then
             c.printf("->%d", t.label)
         else
             c.printf("\tSF=%d\tSV=%.1f", t.split_feature, t.split_val)
@@ -156,6 +155,7 @@ do
         t.split_feature = -1
         t.left = child
         t.right = child + 1
+        t.label = -1 -- initialize with no label 
         t.depth = depth
         t.max_depth = max_depth
         if n_samelevel == cmath.pow(2, depth) then
@@ -166,6 +166,7 @@ do
         end 
         child += 2
     end 
+    return 1
 end
  
  
@@ -222,7 +223,6 @@ end
 -- apply data to mapping region 
 --------------------------------------------------------------------
 __demand(__inline) task apply_mapping(r_trees : region(ispace(int1d), Tree),
-                                      pre_index: uint8,
                                       node_index : uint8,
                                       r_mapping : region(ispace(int1d), Mapping),
                                       rows : &uint64)
@@ -230,7 +230,7 @@ where
   reads (r_trees, r_mapping),
   writes (r_trees, r_mapping)
 do
-    var pre = r_trees[pre_index]
+    var pre = r_trees[node_index - 1]
     var m = pre.mapping_head + pre.n
     r_trees[node_index].mapping_head = m
      
@@ -302,10 +302,10 @@ do
     end 
 
     r_trees[left_index].n = n_left 
-    apply_mapping(r_trees, tree_index, left_index, r_mapping, left_data)
+    apply_mapping(r_trees, left_index, r_mapping, left_data)
 
     r_trees[right_index].n = n_right 
-    apply_mapping(r_trees, left_index, right_index, r_mapping, right_data)
+    apply_mapping(r_trees, right_index, r_mapping, right_data)
     
 end 
 
@@ -322,7 +322,7 @@ do
     for t_index in r_trees do 
         split_node(r_trees, r_data_points, r_mapping, t_index) 
     end 
-    return 1 -- return a dummy variable 
+    return 1 -- return a dummy value  
 end 
 
 
@@ -394,16 +394,16 @@ task main()
   var n_trees = cmath.pow(2, config.max_depth + 1) - 1
   var r_trees = region(ispace(int1d, n_trees), Tree)
   init_trees(r_trees, config.train_row, config.max_depth, r_mapping)
-  c.printf("\n**** INIT ******\n")
+  -- c.printf("\n**** Init Done ******\n")
   -- show_trees(r_trees)
 
   ------------------ Train ----------------------
   var train_start = c.legion_get_current_time_in_micros()
-  var dummy = train(r_trees, r_train, r_mapping)
+  var _ = train(r_trees, r_train, r_mapping)
   var train_stop = c.legion_get_current_time_in_micros()
 
   c.printf("\n**** Train Done ******\n")
-  -- show_trees(r_trees)
+  show_trees(r_trees)
 
   ------------------ Test ----------------------
   var test_start = c.legion_get_current_time_in_micros()
@@ -413,8 +413,8 @@ task main()
 
   var test_stop = c.legion_get_current_time_in_micros()
 
-  c.printf("Training time: %.4f sec\n", (train_stop - train_start) * 1e-6)
-  c.printf("Testing  time: %.4f sec\n", (test_stop - test_start) * 1e-6)
+  c.printf("Training Time: %.2f sec\n", (train_stop - train_start) * 1e-6)
+  c.printf("Testing  Time: %.2f sec\n", (test_stop - test_start) * 1e-6)
 
   c.printf("Train Acc: %.2f\n", train_acc)
   c.printf("Test  Acc: %.2f\n", test_acc)
