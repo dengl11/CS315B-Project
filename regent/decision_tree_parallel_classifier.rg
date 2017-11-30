@@ -14,7 +14,7 @@ local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 local assert = regentlib.assert
 
-local max_row = 1000
+local max_row = 7000
 
 local num_feature = 6
 
@@ -40,6 +40,7 @@ fspace Mapping {
 -- Field Space for decision tree node 
 ------------------------------------
 fspace Tree{
+    ID  : uint8,
     left : uint32,
     right: uint32,
     depth: uint32,            -- depth
@@ -51,7 +52,6 @@ fspace Tree{
     split_val     : float;    -- value of splitting feature
     gini          : float;    -- gini index 
     n             : uint64;   -- number of data points in this node
-    mapping_head  : uint64;
 }
 
 
@@ -118,7 +118,7 @@ do
         for i = 0, t.depth do
             c.printf("\t")
         end 
-        c.printf("[%d]\tM=%zu\tL=%d\tR=%d\tn=%d\tG=%.2f", t, t.mapping_head, t.left, t.right, t.n, t.gini)
+        c.printf("[%d]\tL=%d\tR=%d\tn=%d\tG=%.2f", t, t.left, t.right, t.n, t.gini)
         if t.label >= 0 then
             c.printf("->%d", t.label)
         else
@@ -143,7 +143,6 @@ do
     -- init root node 
     var root_index = 0
     r_trees[root_index].n = num_row 
-    r_trees[root_index].mapping_head = 0
     for i = 0, num_row do
         r_mapping[i].row = i
     end 
@@ -152,6 +151,7 @@ do
     var depth = 0
     var n_samelevel = 1
     for t in r_trees do
+        t.ID = t  
         t.split_feature = -1
         t.left = child
         t.right = child + 1
@@ -185,16 +185,16 @@ do
     var node = r_trees[tree_index]
     var best_gini = node.gini 
     var split_val : float 
-    var m = node.mapping_head 
+    var s = node.ID * max_row
     for i = 0, node.n do
-        var curr_val = r_data_points[r_mapping[m + i].row].features[feature]
+        var curr_val = r_data_points[r_mapping[s + i].row].features[feature]
         var num_pos_left : float = 0
         var num_left : float = 0
         var num_pos_right : float = 0
         var num_right : float = 0
         
         for j = 0, node.n do
-            var point = r_data_points[r_mapping[m + j].row]
+            var point = r_data_points[r_mapping[s + j].row]
             if point.features[feature] <= curr_val then
                 num_pos_left += point.label 
                 num_left += 1
@@ -230,13 +230,11 @@ where
   reads (r_trees, r_mapping),
   writes (r_trees, r_mapping)
 do
-    c.printf("apply mapping: %d\n", node_index)
     var pre = r_trees[node_index - 1]
-    var m = pre.mapping_head + pre.n
-    r_trees[node_index].mapping_head = m
+    var s = max_row * r_trees[node_index].ID 
      
     for i = 0, r_trees[node_index].n do
-        r_mapping[m + i].row = rows[i]
+        r_mapping[s + i].row = rows[i]
     end 
 end 
 
@@ -252,34 +250,22 @@ where
   reads (r_data_points, r_trees, r_mapping),
   writes (r_trees, r_mapping)
 do
-    c.printf("Split Node: %d\n", tree_index)
     var node_index = tree_index
     var node = r_trees[node_index]
-    c.printf("ok 1\n")
     var nPos : float = 0
-    var m = node.mapping_head
-    c.printf("ok 1.2\n")
+    var s = node.ID * max_row
     for i = 0,  node.n do
-        c.printf("1 %d -> ", m+i)
-        c.printf("2 %d", r_mapping[m+i].row)
-        c.printf("3 -> %d\n", r_data_points[r_mapping[m+i].row].label)
-        nPos += r_data_points[r_mapping[m+i].row].label 
+        nPos += r_data_points[r_mapping[s+i].row].label 
     end 
     -- ratio of positive points 
-    c.printf("ok 2\n")
     var pos_ratio : float = nPos/node.n 
-    c.printf("ok 3\n")
     var best_gini = compute_gini(pos_ratio)
-    c.printf("ok 4\n")
     r_trees[node_index].gini = best_gini 
-    c.printf("ok 5\n")
     -- stop splitting criteria 
     if node.depth >= node.max_depth or best_gini == 0.0 then 
         r_trees[tree_index].label = [int](nPos > node.n / 2)
         return 
     end 
-
-    c.printf("continue splitting\n")
 
     var split_feature : uint8 
     var split_val:float 
@@ -302,7 +288,7 @@ do
     var right_data : uint64[max_row]
 
     for i = 0, node.n do
-        var row = r_mapping[m + i].row
+        var row = r_mapping[s + i].row
         var point = r_data_points[row]
         if point.features[split_feature] <= split_val then
             left_data[n_left] = row 
@@ -337,25 +323,23 @@ do
     var tree_coloring = ispace(int1d, num_tree)
     var tree_partition = partition(equal, r_trees, tree_coloring)
 
+    -- create coloring of map 
+    var map_coloring = c.legion_domain_point_coloring_create()
+    -- assign color 
+    for color = 0, num_tree do 
+        var node = r_trees[color]
+        var start = node.ID * max_row
+        var finish = (node.ID + 1) * max_row
+    c.legion_domain_point_coloring_color_domain(map_coloring, [int1d](color), rect1d {start, finish})
+    end 
+    -- create a partition of map 
+    var map_partition = partition(disjoint, r_mapping, map_coloring, ispace(int1d, num_tree))
+    c.legion_domain_point_coloring_destroy(map_coloring)
+
     var start = 0
     var scaler = 1
 
-    c.printf("coloring ok\n")
     while start < num_tree do 
-        -- create coloring of map 
-        var map_coloring = c.legion_domain_point_coloring_create()
-        -- assign color 
-        for color = 0, num_tree do 
-            var node = r_trees[color]
-            var start = node.mapping_head
-            var finish = node.mapping_head + node.n - 1
-        c.legion_domain_point_coloring_color_domain(map_coloring, [int1d](color), rect1d {start, finish})
-        c.printf("%d->%d\n", start, finish)
-        end 
-        -- create a partition of map 
-        var map_partition = partition(disjoint, r_mapping, map_coloring, ispace(int1d, num_tree))
-        c.legion_domain_point_coloring_destroy(map_coloring)
-
         __demand(__parallel)
         for t_index = start, start + scaler do 
             split_node(tree_partition[t_index], r_data_points, map_partition[t_index], t_index) 
@@ -387,6 +371,9 @@ do
     return node.label
 end 
 
+
+-- test a batch a data 
+--------------------------------------------------------------------
 task test_batch(r_trees : region(ispace(int1d), Tree), 
           r_data_points : region(ispace(int1d), DataPoint))
 where
@@ -435,8 +422,10 @@ task main()
   show_config(config)
   assert(config.train_row <= max_row, "Too Many Rows!")
 
+  var n_trees = cmath.pow(2, config.max_depth + 1) - 1
+
   -- create a region of mapping 
-  var r_mapping = region(ispace(int1d, config.max_depth * config.train_row), Mapping)
+  var r_mapping = region(ispace(int1d, n_trees * max_row), Mapping)
 
   ------------------ Read in Data ----------------------
 
@@ -452,7 +441,6 @@ task main()
 
   -- peek(r_train, 10)
 
-  var n_trees = cmath.pow(2, config.max_depth + 1) - 1
   var r_trees = region(ispace(int1d, n_trees), Tree)
   init_trees(r_trees, config.train_row, config.max_depth, r_mapping)
   -- c.printf("\n**** Init Done ******\n")
