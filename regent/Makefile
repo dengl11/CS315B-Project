@@ -12,7 +12,7 @@ adult_tiny:
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/adult/adult_train_tiny.tsv\
 		-test ../data/adult/adult_test_tiny.tsv\
-		-d 8
+		-d 2
 
 adult_small:
 	clear
@@ -32,7 +32,7 @@ iris:
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/iris/iris_train.tsv\
 		-test ../data/iris/iris_test.tsv\
-		-d 5
+		-d 2
 
 adult:
 	clear
