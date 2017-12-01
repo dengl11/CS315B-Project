@@ -1,11 +1,29 @@
+init:
+	mkdir -p out 
+	mkdir -p out/adult
+
+
+p_adult_mini:
+	clear
+	~/legion/language/regent.py ./decision_tree_parallel_classifier.rg\
+		-train ../data/adult/adult_train_mini.tsv\
+		-test ../data/adult/adult_test_mini.tsv\
+		-d 3\
+		-p 4\
+		-lg:spy -logfile ./out/adult/mini.log
+	# spy
+	~/legion/tools/legion_spy.py -d -e ./out/adult/mini.log
 
 p_adult_tiny:
 	clear
 	~/legion/language/regent.py ./decision_tree_parallel_classifier.rg\
 		-train ../data/adult/adult_train_tiny.tsv\
 		-test ../data/adult/adult_test_tiny.tsv\
-		-d 3\
-		-p 8
+		-d 1\
+		-p 2\
+		-lg:spy -logfile ./out/adult/tiny.log
+	# spy
+	~/legion/tools/legion_spy.py -d -e ./out/adult/tiny.log
 
 adult_tiny_no_map:
 	clear
@@ -19,8 +37,13 @@ p_adult_medium:
 	~/legion/language/regent.py ./decision_tree_parallel_classifier.rg\
 		-train ../data/adult/adult_train_medium.tsv\
 		-test ../data/adult/adult_test_medium.tsv\
+		-lg:spy -logfile ./out/adult/adult_spy.log\
+		elg:spy -logfile ./out/adult/adult_event.log\
 		-p 8\
 		-d 8
+	
+	# spy
+	~/legion/tools/legion_spy.py -d -e ./out/adult/adult_event.log
 
 adult_medium:
 	clear
@@ -63,6 +86,7 @@ p_adult:
 		-test ../data/adult/adult_test.tsv\
 		-p 8\
 		-d 4
+	
 
 adult:
 	clear

@@ -176,7 +176,7 @@ end
 --------------------------------------------------------------------
 -- feature:  index of feature in feature list to be splited 
 -- return {gini_index, split_val}
-task split_by_feature(r_trees : region(ispace(int1d), Tree), 
+__demand(__inline) task split_by_feature(r_trees : region(ispace(int1d), Tree), 
                       r_data_points : region(ispace(int1d), DataPoint), 
                       r_mapping : region(ispace(int1d), Mapping), 
                       tree_index : uint8, 
@@ -359,7 +359,7 @@ end
 
 -- predict a single point 
 --------------------------------------------------------------------
-task predict_point(r_trees : region(ispace(int1d), Tree), 
+__demand(__inline) task predict_point(r_trees : region(ispace(int1d), Tree), 
                    point : DataPoint)
 where
   reads (r_trees)
@@ -390,7 +390,6 @@ do
 
     for e in r_data_points do
         var prediction = predict_point(r_trees, r_data_points[e])
-        assert(prediction>=0, "wrong prediction!")
         correct += [int](prediction == r_data_points[e].label)
         n += 1
     end 
