@@ -14,7 +14,7 @@ local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 local assert = regentlib.assert
 
-local max_row = 7000
+local max_row = 35000
 
 local num_feature = 6
 
@@ -327,12 +327,13 @@ do
 
     -- create coloring of tree region 
     var tree_coloring = ispace(int1d, num_tree)
+    -- create a partition of tree  
     var tree_partition = partition(equal, r_trees, tree_coloring)
 
     -- create coloring of map 
     var map_coloring = ispace(int1d, num_tree)
     -- create a partition of map 
-    var map_partition =partition(equal, r_mapping, map_coloring)
+    var map_partition = partition(equal, r_mapping, map_coloring)
 
     var start = 0
     var scaler = 1

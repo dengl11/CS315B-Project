@@ -21,15 +21,15 @@ struct DecisionTreeConfig
 --------------------------------------------------------------------
 terra show_config(config : DecisionTreeConfig)
   c.printf("****************************************\n")
-  c.printf("* Decision Tree Classifier             *\n")
-  c.printf("*                                      *\n")
+  c.printf("* Decision Tree Classifier             \n")
+  c.printf("*                                      \n")
   c.printf("* Max Depth: %d\n",  config.max_depth)
   c.printf("* Train Input: %s\n",  config.input_train)
   c.printf("* Test  Input: %s\n",  config.input_test)
-  c.printf("* Train - Number of Rows  :  %11lu       *\n",  config.train_row)
-  c.printf("* Test  - Number of Rows  :  %11lu       *\n",  config.test_row)
-  c.printf("* Number of Cols          :  %11lu       *\n",  config.num_col)
-  c.printf("* Parallelism             :  %11lu       *\n",  config.parallelism)
+  c.printf("* Train - Number of Rows  :  %11lu       \n",  config.train_row)
+  c.printf("* Test  - Number of Rows  :  %11lu       \n",  config.test_row)
+  c.printf("* Number of Cols          :  %11lu       \n",  config.num_col)
+  c.printf("* Parallelism             :  %11lu       \n",  config.parallelism)
   c.printf("****************************************\n") 
 end
 

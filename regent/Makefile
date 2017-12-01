@@ -64,17 +64,21 @@ p_adult_medium:
 		-test ../data/adult/adult_test_medium.tsv\
 		-lg:spy -logfile ./out/adult/medium.log\
 		-p 8\
-		-d 2
+		-d 4
 	
 	# spy
 	~/legion/tools/legion_spy.py -d -e ./out/adult/medium.log
+
 
 adult_medium:
 	clear
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/adult/adult_train_medium.tsv\
 		-test ../data/adult/adult_test_medium.tsv\
-		-d 8
+		-lg:spy -logfile ./out/adult/seq_medium.log\
+		-d 4
+	# spy
+	~/legion/tools/legion_spy.py -d -e ./out/adult/seq_medium.log
 
 adult_tiny:
 	clear
@@ -110,7 +114,7 @@ p_adult:
 		-test ../data/adult/adult_test.tsv\
 		-lg:spy -logfile ./out/adult/large.log\
 		-p 8\
-		-d 4
+		-d 2
 	
 	# spy
 	~/legion/tools/legion_spy.py -d -e ./out/adult/large.log
@@ -120,4 +124,7 @@ adult:
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/adult/adult_train.tsv\
 		-test ../data/adult/adult_test.tsv\
+		-lg:spy -logfile ./out/adult/seq_large.log\
 		-d 4
+	# spy
+	~/legion/tools/legion_spy.py -d -e ./out/adult/seq_large.log
