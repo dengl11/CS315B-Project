@@ -37,13 +37,12 @@ p_adult_medium:
 	~/legion/language/regent.py ./decision_tree_parallel_classifier.rg\
 		-train ../data/adult/adult_train_medium.tsv\
 		-test ../data/adult/adult_test_medium.tsv\
-		-lg:spy -logfile ./out/adult/adult_spy.log\
-		elg:spy -logfile ./out/adult/adult_event.log\
+		-lg:spy -logfile ./out/adult/medium.log\
 		-p 8\
-		-d 8
+		-d 2
 	
 	# spy
-	~/legion/tools/legion_spy.py -d -e ./out/adult/adult_event.log
+	~/legion/tools/legion_spy.py -d -e ./out/adult/medium.log
 
 adult_medium:
 	clear
@@ -84,9 +83,12 @@ p_adult:
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/adult/adult_train.tsv\
 		-test ../data/adult/adult_test.tsv\
+		-lg:spy -logfile ./out/adult/large.log\
 		-p 8\
 		-d 4
 	
+	# spy
+	~/legion/tools/legion_spy.py -d -e ./out/adult/large.log
 
 adult:
 	clear

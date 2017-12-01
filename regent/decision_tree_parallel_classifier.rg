@@ -336,7 +336,7 @@ do
         var node = r_trees[color]
         var start = node.ID * max_row
         var finish = (node.ID + 1) * max_row
-    c.legion_domain_point_coloring_color_domain(map_coloring, [int1d](color), rect1d {start, finish})
+        c.legion_domain_point_coloring_color_domain(map_coloring, [int1d](color), rect1d {start, finish})
     end 
     -- create a partition of map 
     var map_partition = partition(disjoint, r_mapping, map_coloring, ispace(int1d, num_tree))
