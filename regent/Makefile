@@ -128,3 +128,7 @@ adult:
 		-d 4
 	# spy
 	~/legion/tools/legion_spy.py -d -e ./out/adult/seq_large.log
+
+clear:
+	rm run_pbs.sh.o*
+	rm run_pbs.sh.e*
