@@ -14,7 +14,7 @@ local sqrt  = regentlib.sqrt(float)
 local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 
-local max_row = 7000
+local max_row = 1000
 
 local num_feature = 6
 
@@ -163,7 +163,7 @@ end
 --------------------------------------------------------------------
 -- feature:  index of feature in feature list to be splited 
 -- return {gini_index, split_val}
-task split_by_feature(r_trees : region(Tree), 
+__demand(__inline) task split_by_feature(r_trees : region(Tree), 
                       r_data_points : region(DataPoint), 
                       tree_index : uint8, 
                       feature : uint32)
@@ -297,7 +297,7 @@ end
 
 -- predict a single point 
 --------------------------------------------------------------------
-task predict_point(r_trees : region(Tree), 
+__demand(__inline) task predict_point(r_trees : region(Tree), 
            point : DataPoint)
 where
   reads (r_trees)

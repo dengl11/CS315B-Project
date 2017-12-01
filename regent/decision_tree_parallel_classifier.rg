@@ -330,17 +330,9 @@ do
     var tree_partition = partition(equal, r_trees, tree_coloring)
 
     -- create coloring of map 
-    var map_coloring = c.legion_domain_point_coloring_create()
-    -- assign color 
-    for color = 0, num_tree do 
-        var node = r_trees[color]
-        var start = node.ID * max_row
-        var finish = (node.ID + 1) * max_row
-        c.legion_domain_point_coloring_color_domain(map_coloring, [int1d](color), rect1d {start, finish})
-    end 
+    var map_coloring = ispace(int1d, num_tree)
     -- create a partition of map 
-    var map_partition = partition(disjoint, r_mapping, map_coloring, ispace(int1d, num_tree))
-    c.legion_domain_point_coloring_destroy(map_coloring)
+    var map_partition =partition(equal, r_mapping, map_coloring)
 
     var start = 0
     var scaler = 1
