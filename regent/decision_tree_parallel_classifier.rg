@@ -115,16 +115,18 @@ where
 do
     c.printf("--------------- Trees ------------------\n")
     for t in r_trees do
-        for i = 0, t.depth do
-            c.printf("\t")
+        if t.n > 0 then 
+            for i = 0, t.depth do
+                c.printf("\t")
+            end 
+            c.printf("[%d]\tL=%d\tR=%d\tn=%d\tG=%.2f", t, t.left, t.right, t.n, t.gini)
+            if t.label >= 0 then
+                c.printf("->%d", t.label)
+            else
+                c.printf("\tSF=%d\tSV=%.1f", t.split_feature, t.split_val)
+            end 
+            c.printf("\n")
         end 
-        c.printf("[%d]\tL=%d\tR=%d\tn=%d\tG=%.2f", t, t.left, t.right, t.n, t.gini)
-        if t.label >= 0 then
-            c.printf("->%d", t.label)
-        else
-            c.printf("\tSF=%d\tSV=%.1f", t.split_feature, t.split_val)
-        end 
-        c.printf("\n")
     end 
     c.printf("----------------------------------------\n")
 end 
@@ -245,7 +247,7 @@ end
 task split_node(r_trees : region(ispace(int1d), Tree), 
                 r_data_points : region(ispace(int1d), DataPoint), 
                 r_mapping : region(ispace(int1d), Mapping), 
-                tree_index : uint8)
+                tree_index : uint32)
 where
   reads (r_data_points, r_trees, r_mapping),
   writes (r_trees, r_mapping)
@@ -267,6 +269,7 @@ do
     -- stop splitting criteria 
     if node.depth >= node.max_depth or best_gini == 0.0 then 
         r_trees[tree_index].label = [int](nPos > node.n / 2)
+        assert(r_trees[tree_index].split_feature < 0, "wrong feature")
         return 
     end 
 
@@ -363,7 +366,7 @@ where
 do
     var tree_index = 0
     var node = r_trees[tree_index]
-    while node.split_feature >= 0 do
+    while node.label < 0 do
         if point.features[node.split_feature] <= node.split_val then
             tree_index = node.left
         else
@@ -387,6 +390,7 @@ do
 
     for e in r_data_points do
         var prediction = predict_point(r_trees, r_data_points[e])
+        assert(prediction>=0, "wrong prediction!")
         correct += [int](prediction == r_data_points[e].label)
         n += 1
     end 

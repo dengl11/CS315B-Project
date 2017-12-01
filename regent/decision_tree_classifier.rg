@@ -246,7 +246,7 @@ end
 task split_node(r_trees : region(ispace(int1d), Tree), 
                 r_data_points : region(ispace(int1d), DataPoint), 
                 r_mapping : region(ispace(int1d), Mapping), 
-                tree_index : uint8)
+                tree_index : uint32)
 where
   reads (r_data_points, r_trees, r_mapping),
   writes (r_trees, r_mapping)
@@ -254,7 +254,8 @@ do
     var node_index = tree_index
     var node = r_trees[node_index]
 
-    if node.n == 0 then return end 
+    if node.n <= 0 then return end 
+     
 
     var nPos : float = 0
     var m = node.mapping_head
@@ -338,7 +339,7 @@ where
 do
     var tree_index = 0
     var node = r_trees[tree_index]
-    while node.split_feature >= 0 do
+    while node.label < 0 do
         if point.features[node.split_feature] <= node.split_val then
             tree_index = node.left
         else

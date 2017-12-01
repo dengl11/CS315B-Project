@@ -20,14 +20,14 @@ p_adult_medium:
 		-train ../data/adult/adult_train_medium.tsv\
 		-test ../data/adult/adult_test_medium.tsv\
 		-p 8\
-		-d 5
+		-d 8
 
 adult_medium:
 	clear
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/adult/adult_train_medium.tsv\
 		-test ../data/adult/adult_test_medium.tsv\
-		-d 5
+		-d 8
 
 adult_tiny:
 	clear
