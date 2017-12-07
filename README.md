@@ -39,6 +39,46 @@
 <img src="doc/alg.png" width="1200px">
 </div>
 
+### How to Run
+
+- Clone:
+
+```  
+git clone https://github.com/dengl11/CS315B-Project
+cd CS315B-Project
+```  
+
+- Run `regent` script:
+
+```  
+cd regent
+
+# adult-tiny dataset - sequential 
+make adult_tiny
+# adult-tiny dataset - parallel 
+make p_adult_tiny
+
+# adult-medium dataset - sequential 
+make adult_medium
+# adult-medium dataset - parallel 
+make p_adult_medium
+
+# adult-large dataset - sequential 
+make adult
+# adult-large dataset - parallel 
+make p_adult
+```  
+
+- Run `python` script:
+
+```  
+cd python
+python3 adult_classification.py
+```  
+
+
+
+
 
 
 
