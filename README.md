@@ -20,12 +20,14 @@
 
 
 ### Algorithm 
+-----------------
 
 <div style="margin-top:4em"></div>
 <img src="doc/alg.png" width="1200px">
 </div>
 
 ### How to Run
+-----------------
 
 - `clone`:
 
@@ -64,10 +66,12 @@ python3 adult_classification.py
 
 
 ### [Presentation](https://github.com/dengl11/CS315B-Project/blob/master/doc/CS315B_Project_Presentation.pdf)
+-----------------
 
 
 
 ### Repo Structure
+-----------------
 
 ```  
 ├── README.md
