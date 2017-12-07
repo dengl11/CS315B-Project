@@ -77,6 +77,7 @@ python3 adult_classification.py
 ```  
 
 
+## [Presentation](https://github.com/dengl11/CS315B-Project/blob/master/doc/CS315B_Project_Presentation.pdf)
 
 
 
