@@ -461,11 +461,11 @@ task main()
 
   var test_stop = c.legion_get_current_time_in_micros()
 
-  c.printf("Training Time: %.2f sec\n", (train_stop - train_start) * 1e-6)
-  c.printf("Testing  Time: %.2f sec\n", (test_stop - test_start) * 1e-6)
+  c.printf("Training Time: %.4f sec\n", (train_stop - train_start) * 1e-6)
+  c.printf("Testing  Time: %.4f sec\n", (test_stop - test_start) * 1e-6)
 
-  c.printf("Train Acc: %.2f\n", train_acc)
-  c.printf("Test  Acc: %.2f\n", test_acc)
+  c.printf("Train Acc: %.4f\n", train_acc)
+  c.printf("Test  Acc: %.4f\n", test_acc)
 end
 
 regentlib.start(main)

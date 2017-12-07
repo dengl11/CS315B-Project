@@ -62,12 +62,12 @@ p_adult_medium:
 	~/legion/language/regent.py ./decision_tree_parallel_classifier.rg\
 		-train ../data/adult/adult_train_medium.tsv\
 		-test ../data/adult/adult_test_medium.tsv\
-		-lg:spy -logfile ./out/adult/medium.log\
-		-p 8\
-		-d 4
+		-p 4\
+		-d 8
+		#-lg:spy -logfile ./out/adult/medium.log\
 	
 	# spy
-	~/legion/tools/legion_spy.py -d -e ./out/adult/medium.log
+	#~/legion/tools/legion_spy.py -d -e ./out/adult/medium.log
 
 
 adult_medium:
@@ -75,10 +75,10 @@ adult_medium:
 	~/legion/language/regent.py ./decision_tree_classifier.rg\
 		-train ../data/adult/adult_train_medium.tsv\
 		-test ../data/adult/adult_test_medium.tsv\
-		-lg:spy -logfile ./out/adult/seq_medium.log\
-		-d 4
+		-d 8
+		#-lg:spy -logfile ./out/adult/seq_medium.log\
 	# spy
-	~/legion/tools/legion_spy.py -d -e ./out/adult/seq_medium.log
+	#~/legion/tools/legion_spy.py -d -e ./out/adult/seq_medium.log
 
 adult_tiny:
 	clear
@@ -114,7 +114,7 @@ p_adult:
 		-test ../data/adult/adult_test.tsv\
 		-lg:spy -logfile ./out/adult/large.log\
 		-p 8\
-		-d 2
+		-d 4
 	
 	# spy
 	~/legion/tools/legion_spy.py -d -e ./out/adult/large.log
@@ -127,7 +127,7 @@ adult:
 		-lg:spy -logfile ./out/adult/seq_large.log\
 		-d 4
 	# spy
-	~/legion/tools/legion_spy.py -d -e ./out/adult/seq_large.log
+	#~/legion/tools/legion_spy.py -d -e ./out/adult/seq_large.log
 
 clear:
 	rm run_pbs.sh.o*

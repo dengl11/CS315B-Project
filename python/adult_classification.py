@@ -9,7 +9,7 @@ from my_decision_tree import *
 from datetime import datetime
 
 # param
-max_depth = 3
+max_depth = 6
 
 def get_data(input):
     """return (X, y) for input 
