@@ -18,30 +18,16 @@
 - No Regularization 
 - Classification Metric: `Gini` index 
 
-<div style="text-align: center">
-<a href="https://www.codecogs.com/eqnedit.php?latex=\begin{center}&space;I&space;=&space;1&space;-&space;\sum_j^{C}p_j^2&space;\end{center}&space;\\&space;\text{where&space;C&space;is&space;the&space;number&space;of&space;classes,&space;},&space;p_j&space;\text{is&space;the&space;portion&space;of&space;data&space;in&space;class}&space;j" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\begin{center}&space;I&space;=&space;1&space;-&space;\sum_j^{C}p_j^2&space;\end{center}&space;\\&space;\text{where&space;C&space;is&space;the&space;number&space;of&space;classes,&space;},&space;p_j&space;\text{is&space;the&space;portion&space;of&space;data&space;in&space;class}&space;j" title="\begin{center} I = 1 - \sum_j^{C}p_j^2 \end{center} \\ \text{where C is the number of classes, }, p_j \text{is the portion of data in class} j" /></a>
-</div>
 
 ### Algorithm 
------------------
-<div style="text-align: center">
-<img src="doc/dt.png" width="400px"/>
-<p>Source:  http://homes.cs.washington.edu/~tqchen/pdf/BoostedTree.pdf</p>
 
 <div style="margin-top:4em"></div>
-
-<img src="http://zhanpengfang.github.io/fig_418/sequential_alg.jpg" width="600px">
-<p>Source:  http://zhanpengfang.github.io/fig_418</p>
-
-------
-<div style="margin-top:4em"></div>
-
 <img src="doc/alg.png" width="1200px">
 </div>
 
 ### How to Run
 
-- Clone:
+- `clone`:
 
 ```  
 git clone https://github.com/dengl11/CS315B-Project
