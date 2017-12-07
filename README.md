@@ -77,10 +77,97 @@ python3 adult_classification.py
 ```  
 
 
-## [Presentation](https://github.com/dengl11/CS315B-Project/blob/master/doc/CS315B_Project_Presentation.pdf)
+### [Presentation](https://github.com/dengl11/CS315B-Project/blob/master/doc/CS315B_Project_Presentation.pdf)
 
 
 
+### Repo Structure
+
+```  
+├── README.md
+├── data
+│   ├── Makefile
+│   ├── README.md
+│   ├── adult
+│   │   ├── adult_test.tsv
+│   │   ├── adult_test_medium.tsv
+│   │   ├── adult_test_mini.tsv
+│   │   ├── adult_test_small.tsv
+│   │   ├── adult_test_tiny.tsv
+│   │   ├── adult_train.tsv
+│   │   ├── adult_train_medium.tsv
+│   │   ├── adult_train_mini.tsv
+│   │   ├── adult_train_small.tsv
+│   │   ├── adult_train_tiny.tsv
+│   │   └── original
+│   │       ├── adult.csv
+│   │       ├── adult.data.txt
+│   │       └── adult.test.txt
+│   ├── cancer
+│   │   ├── cancer_test.tsv
+│   │   └── cancer_train.tsv
+│   └── iris
+│       ├── README.md
+│       ├── iris_full.csv
+│       ├── iris_test.tsv
+│       └── iris_train.tsv
+├── doc
+│   ├── CS315B_Project_Presentation.pdf
+│   ├── alg.png
+│   ├── dt.png
+│   ├── report.md
+│   └── spy
+│       ├── large_d2_p4.pdf
+│       ├── medium_d_4.pdf
+│       └── medium_no_mapping.pdf
+├── preprocess
+│   ├── README.md
+│   ├── generate_toy_dataset.py
+│   ├── lib
+│   │   ├── __init__.py
+│   │   ├── dataframe_preprocessor.py
+│   │   └── util
+│   │       ├── __init__.py
+│   │       ├── logger.py
+│   │       └── plotter.py
+│   ├── preprocess_adult.py
+│   └── util.py
+├── python
+│   ├── README.md
+│   ├── ValidateMyTree.ipynb
+│   ├── adult_classification.py
+│   ├── adult_sklearn.py
+│   ├── my_classification.py
+│   ├── my_decision_tree.py
+│   └── sklearn_classification.py
+└── regent
+    ├── CONFIG.rg
+    ├── Makefile
+    ├── README.md
+    ├── analysis
+    │   └── tiny_d2_p4.md
+    ├── decision_tree_classifier.rg
+    ├── decision_tree_classifier_no_mapping.rg
+    ├── decision_tree_config.rg
+    ├── decision_tree_lib.rg
+    ├── decision_tree_parallel_classifier.rg
+    ├── decision_tree_parallel_classifier_no_mapping.rg
+    ├── field_space_lib.rg
+    ├── out
+    │   └── adult
+    │       ├── adult_event.log
+    │       ├── large.log
+    │       ├── medium.log
+    │       ├── mini.log
+    │       ├── seq.log
+    │       ├── seq_large.log
+    │       ├── seq_medium.log
+    │       ├── seq_tiny.log
+    │       ├── tiny.log
+    │       └── tiny_nm.log
+    ├── run_pbs.sh
+    └── util.rg
+```  
 
 
 ### Reference
