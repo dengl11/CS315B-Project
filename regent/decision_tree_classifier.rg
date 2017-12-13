@@ -14,7 +14,7 @@ local cmath = terralib.includec("math.h")
 local std = terralib.includec("stdlib.h")
 local assert = regentlib.assert
 
-local max_row = 35000
+local max_row = 376079
 
 local num_feature = 6
 

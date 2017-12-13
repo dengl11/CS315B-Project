@@ -129,6 +129,16 @@ adult:
 	# spy
 	#~/legion/tools/legion_spy.py -d -e ./out/adult/seq_large.log
 
+adult_10:
+	clear
+	~/legion/language/regent.py ./decision_tree_classifier.rg\
+		-train ../data/adult/adult_train_10_fold.tsv\
+		-test ../data/adult/adult_test_10_fold.tsv\
+		-lg:spy -logfile ./out/adult/seq_large.log\
+		-d 4
+	 spy
+	~/legion/tools/legion_spy.py -d -e ./out/adult/seq_large.log
+
 clear:
 	rm run_pbs.sh.o*
 	rm run_pbs.sh.e*
